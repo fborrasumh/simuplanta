@@ -4,6 +4,8 @@ Simulador interactivo de respuestas fisiológicas en cultivos ante variaciones a
 
 **Usar la app:** https://fborrasumh.github.io/simuplanta/
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23138255.svg)](https://doi.org/10.5281/zenodo.23138255)
+
 > Catálogo [fborrasumh/ia](https://fborrasumh.github.io/ia/) · Universidad Miguel Hernández de Elche
 
 ## Qué hace
@@ -37,7 +39,7 @@ ORCID: María Emma García Pastor [0000-0002-4959-9419](https://orcid.org/0000-0
 
 ## Cómo citar
 
-García Pastor, M. E. y Borrás Rocher, F. (2026). *SimuPlanta AI* (v2.0.0) [Software]. Universidad Miguel Hernández de Elche. (DOI en trámite)
+García Pastor, M. E. y Borrás Rocher, F. (2026). *SimuPlanta AI* (v2.0.0) [Software]. Universidad Miguel Hernández de Elche. DOI: [10.5281/zenodo.23138255](https://doi.org/10.5281/zenodo.23138255)
 
 ## Licencia
 
