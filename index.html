@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0F2237">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: blob:; media-src blob: data:; connect-src https://api.openai.com https://generativelanguage.googleapis.com https://api.anthropic.com; base-uri 'none'; form-action 'none'">
+<meta name="author" content="María Emma García Pastor; Fernando Borrás Rocher">
+<meta name="description" content="Simulador interactivo de respuestas fisiológicas vegetales ante estrés hídrico, salinidad, temperatura, luz y nutrición. Universidad Miguel Hernández de Elche.">
+<title>SimuPlanta AI · Simulador de respuestas fisiológicas en cultivos</title><link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --tinta:#0F2237; --acero:#2E4B6B; --acero-claro:#7C93AC; --gris:#5D7691;
+  --papel:#F3F6FA; --blanco:#FFFFFF; --linea:#D8E0E9; --linea-2:#E8EEF4;
+  --brasa:#E4572E; --brasa-osc:#C9441F; --brasa-suave:#FDEBE4;
+  --forjado:#0E7C6B; --forjado-suave:#E0F3EE; --aviso:#8A3617;
+  --c-ctx:#1F6FB2; --c-comp:#6B4FD8; --c-rda:#0E8C7A; --c-tema:#C98200; --c-eval:#E4572E; --c-final:#2E4B6B;
+  --sombra:0 1px 0 rgba(15,34,55,.05), 0 14px 34px -22px rgba(15,34,55,.45);
+  --sombra-alta:0 2px 0 rgba(15,34,55,.04), 0 22px 50px -24px rgba(15,34,55,.55);
+  --r:14px;
+  --display:"Bricolage Grotesque",Georgia,serif;
+  --texto:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--papel);color:var(--tinta);font-family:var(--texto);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;padding-bottom:84px}
+a{color:var(--acero)}
+:focus-visible{outline:3px solid var(--brasa);outline-offset:2px;border-radius:6px}
+.hidden{display:none!important}
+svg.i{width:1.15em;height:1.15em;vertical-align:-.2em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+code{font-family:var(--mono);font-size:.85em;background:var(--linea-2);padding:1px 5px;border-radius:5px}
+
+/* Barra superior */
+.topbar{position:sticky;top:0;z-index:40;background:var(--tinta);color:#EAF1F7;box-shadow:0 6px 24px -14px rgba(0,0,0,.6)}
+.tb-in{max-width:1180px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px}
+.logo{background:none;border:0;color:#fff;font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:-.03em;cursor:pointer;padding:2px 4px;display:flex;align-items:center;gap:8px}
+.logo em{font-style:normal;color:var(--brasa)}
+.logo .anv{width:30px;height:30px;border-radius:9px;background:var(--brasa);display:grid;place-items:center;color:#fff}
+.stepper{flex:1;display:flex;align-items:center;justify-content:center;min-width:0}
+.sdot{display:flex;align-items:center;gap:7px;background:none;border:0;color:#8FA7BE;font:600 13px var(--texto);padding:6px;cursor:pointer;border-radius:10px;white-space:nowrap}
+.sdot:disabled{cursor:not-allowed;opacity:.45}
+.sdot .n{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:2px solid #3E5C7D;font-size:12px;color:#A9C0D4;transition:all .2s}
+.sdot .n svg{width:14px;height:14px}
+.sdot[data-state="done"] .n{background:var(--forjado);border-color:var(--forjado);color:#fff}
+.sdot[data-state="now"]{color:#fff}
+.sdot[data-state="now"] .n{background:var(--brasa);border-color:var(--brasa);color:#fff;box-shadow:0 0 0 4px rgba(228,87,46,.25)}
+.sdot:not(:disabled):hover{background:rgba(255,255,255,.06)}
+.sline{flex:0 1 26px;height:2px;background:#2F4A68;min-width:6px}
+.sline.on{background:var(--forjado)}
+.tb-tools{display:flex;gap:6px}
+.tb-btn{background:transparent;border:1px solid #3E5C7D;color:#C9D8E6;border-radius:9px;padding:6px 10px;font:600 13px var(--texto);cursor:pointer;display:flex;align-items:center;gap:6px}
+.tb-btn:hover{border-color:var(--brasa);color:#fff}
+.progress{height:4px;background:#1E3550}
+.progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--brasa),#F59E0B);transition:width .4s}
+@media(max-width:960px){.sdot .lbl{display:none}.sdot[data-state="now"] .lbl{display:inline}}
+@media(max-width:720px){
+  .tb-in{flex-wrap:wrap;gap:8px}
+  .stepper{order:3;flex-basis:100%;justify-content:space-between}
+  .sdot[data-state="now"] .lbl{display:none}
+  .tb-btn .lbl{display:none}
+}
+
+/* Pantallas */
+main{max-width:1180px;margin:0 auto;padding:26px 16px 40px}
+.screen{display:none}
+.screen.on{display:block}
+@media(prefers-reduced-motion:no-preference){.screen.on{animation:rise .35s cubic-bezier(.2,.7,.3,1) both}@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}}
+.sh{display:flex;gap:18px;align-items:flex-start;margin:4px 0 22px}
+.sh-ico{width:64px;height:64px;border-radius:18px;background:var(--c,var(--brasa));color:#fff;display:grid;place-items:center;flex:none;box-shadow:0 12px 24px -14px var(--c,var(--brasa))}
+.sh-ico svg{width:32px;height:32px}
+.sh-step{font:600 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--acero-claro);margin:4px 0}
+.sh h2{font-family:var(--display);font-weight:800;font-size:clamp(26px,3.6vw,38px);letter-spacing:-.025em;line-height:1.05;margin:0 0 6px}
+.sh-lede{margin:0;color:var(--gris);font-size:16.5px;max-width:70ch}
+@media(max-width:600px){.sh-ico{width:48px;height:48px;border-radius:14px}.sh-ico svg{width:24px;height:24px}}
+
+.card{background:var(--blanco);border:1px solid var(--linea);border-radius:var(--r);box-shadow:var(--sombra);padding:20px;margin-bottom:18px}
+.card h3{font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:-.01em;margin:0 0 4px;display:flex;align-items:center;gap:9px}
+.card h3 .num{width:26px;height:26px;border-radius:8px;background:var(--tinta);color:#fff;font:700 13px var(--mono);display:grid;place-items:center}
+.card .sub{margin:0 0 14px;color:var(--gris);font-size:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cols{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:20px;align-items:start}
+.sticky{position:sticky;top:96px}
+@media(max-width:900px){.cols{grid-template-columns:1fr}.sticky{position:static}}
+@media(max-width:640px){.grid2{grid-template-columns:1fr}}
+
+label,.lab{display:block;font-size:13.5px;font-weight:600;margin:0 0 6px;color:var(--acero)}
+label small,.lab small{font-weight:500;color:var(--acero-claro)}
+input[type=text],input[type=password],input[type=number],textarea,select{width:100%;padding:11px 13px;border:1.5px solid var(--linea);border-radius:10px;font-family:var(--texto);font-size:15px;color:var(--tinta);background:#fff;transition:border-color .15s,box-shadow .15s}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--acero-claro);box-shadow:0 0 0 4px rgba(124,147,172,.18)}
+input.bad{border-color:var(--brasa);box-shadow:0 0 0 4px rgba(228,87,46,.15)}
+textarea{resize:vertical;min-height:96px;line-height:1.5}
+input::placeholder,textarea::placeholder{color:#9DB0C2}
+.field{margin-bottom:16px}
+.help{font-size:12.8px;color:var(--gris);margin:6px 0 0}
+.help b{color:var(--acero)}
+
+button{font-family:var(--texto);cursor:pointer}
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:11px;font-weight:600;font-size:15px;border:1.5px solid transparent;padding:11px 18px;transition:transform .08s,background .15s,border-color .15s;text-decoration:none;line-height:1.2}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--brasa);color:#fff;box-shadow:0 8px 18px -10px var(--brasa)}
+.btn-primary:hover{background:var(--brasa-osc)}
+.btn-big{font-size:17px;padding:14px 24px;border-radius:13px}
+.btn-dark{background:var(--tinta);color:#fff}
+.btn-dark:hover{background:#1c3656}
+.btn-ghost{background:#fff;border-color:var(--linea);color:var(--acero)}
+.btn-ghost:hover{border-color:var(--acero-claro);background:#F7FAFC}
+.btn-ok{background:var(--forjado);color:#fff}
+.btn-ok:hover{background:#0b6457}
+.btn-word{background:#2B579A;color:#fff}
+.btn-word:hover{background:#1e3f7a}
+.btn-sm{padding:7px 12px;font-size:13.5px;border-radius:9px}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:#fff;border:1.5px solid var(--linea);border-radius:999px;padding:7px 13px;font-size:13.5px;color:var(--acero);cursor:pointer;display:inline-flex;align-items:center;gap:6px;line-height:1.25;text-align:left}
+.chip:hover{border-color:var(--brasa);color:var(--brasa)}
+.chip[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:#fff}
+.chip.mini-ex{font-size:12.5px;padding:4px 10px;border-style:dashed}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{border:1.5px solid var(--linea);background:#fff;border-radius:9px;padding:7px 11px;font-size:13.5px;font-weight:600;color:var(--acero)}
+.seg button:hover{border-color:var(--acero-claro)}
+.seg button[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:#fff}
+
+.meto{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.meto button{text-align:left;background:#fff;border:1.5px solid var(--linea);border-radius:12px;padding:10px 12px;color:var(--tinta)}
+.meto button b{display:block;font-size:14px}
+.meto button span{display:block;font-size:12.3px;color:var(--gris);line-height:1.35;margin-top:2px}
+.meto button:hover{border-color:var(--acero-claro)}
+.meto button[aria-pressed="true"]{border-color:var(--tinta);box-shadow:0 0 0 2px var(--tinta);background:var(--papel)}
+
+.tip{display:flex;gap:12px;background:#FFF8E6;border:1px solid #F3DDA0;border-radius:12px;padding:13px 15px;font-size:14px;color:#6B4E00;margin-bottom:18px}
+.tip svg{width:22px;height:22px;color:#C98200;flex:none;margin-top:1px}
+.tip strong{color:#523B00}
+.aviso{background:var(--brasa-suave);border:1px solid #F3C7B5;border-radius:12px;padding:13px 15px;font-size:14px;color:var(--aviso);margin-bottom:16px}
+.okbox{background:var(--forjado-suave);border:1px solid #A9DCCF;border-radius:12px;padding:13px 15px;font-size:14px;color:#0B5A4E;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+
+/* Inicio */
+.hero{background:var(--tinta);color:#EAF1F7;border-radius:22px;padding:40px 36px;position:relative;overflow:hidden;margin-bottom:26px;box-shadow:var(--sombra-alta)}
+.hero::before{content:"";position:absolute;right:-80px;top:-80px;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle,rgba(228,87,46,.55),transparent 65%)}
+.hero::after{content:"";position:absolute;left:30%;bottom:-140px;width:420px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(14,140,122,.35),transparent 65%)}
+.hero>*{position:relative;z-index:1}
+@media(max-width:600px){.hero{padding:28px 20px;border-radius:18px}}
+.eyebrow{font:600 11.5px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:#8FA7BE;margin:0 0 14px}
+.hero h1{font-family:var(--display);font-weight:800;font-size:clamp(34px,5.4vw,58px);line-height:.98;letter-spacing:-.035em;margin:0 0 16px;max-width:17ch}
+.hero h1 em{font-style:normal;color:var(--brasa)}
+.hero p.lede{max-width:62ch;font-size:18px;color:#C3D3E2;margin:0 0 24px}
+.hero .actions .btn-ghost{background:transparent;color:#fff;border-color:#4A6787}
+.hero .actions .btn-ghost:hover{border-color:#fff}
+.draft{margin-top:18px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:12px 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:14.5px}
+.sec-title{font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:-.02em;margin:34px 0 6px}
+.sec-sub{color:var(--gris);margin:0 0 16px}
+.journey{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.jstop{background:#fff;border:1px solid var(--linea);border-radius:14px;padding:16px;position:relative}
+.jstop .ji{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:#fff;background:var(--c);margin-bottom:10px}
+.jstop .ji svg{width:20px;height:20px}
+.jstop b{display:block;font-size:15px;margin-bottom:2px}
+.jstop span{display:block;font-size:13px;color:var(--gris);line-height:1.45}
+.jstop .jn{position:absolute;top:12px;right:14px;font:700 12px var(--mono);color:var(--acero-claro)}
+@media(max-width:900px){.journey{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.journey{grid-template-columns:1fr}}
+
+.parts{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.part{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--linea);border-radius:12px;padding:12px 14px}
+.part .pi{width:34px;height:34px;border-radius:10px;background:color-mix(in srgb,var(--c) 14%,#fff);color:var(--c);display:grid;place-items:center;flex:none}
+.part b{display:block;font-size:14.5px}
+.part span{display:block;font-size:12.8px;color:var(--gris);line-height:1.4}
+
+.examples{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.excard{background:#fff;border:1px solid var(--linea);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--sombra);position:relative;overflow:hidden;text-align:left;font:inherit;color:inherit;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.excard:hover{transform:translateY(-3px);box-shadow:var(--sombra-alta)}
+.excard::before{content:"";position:absolute;left:0;top:0;right:0;height:5px;background:var(--c)}
+.excard .emo{font-size:32px;line-height:1}
+.excard .area{font:700 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--acero-claro)}
+.excard b{font-family:var(--display);font-size:18px;letter-spacing:-.01em;line-height:1.15}
+.excard p{margin:0;font-size:13.5px;color:var(--gris);flex:1}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--c);background:color-mix(in srgb,var(--c) 12%,#fff);border-radius:999px;padding:3px 9px;align-self:flex-start}
+
+/* Clave */
+.keyrow{display:flex;gap:8px}
+.keyrow input{flex:1;font-family:var(--mono);font-size:14px}
+.eye{width:46px;flex:none;border:1.5px solid var(--linea);background:#fff;border-radius:10px;color:var(--acero);display:grid;place-items:center}
+.light{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:var(--papel);margin-top:14px;font-size:14.5px;font-weight:600}
+.light .bulbo{width:14px;height:14px;border-radius:50%;background:#B8C5D3;box-shadow:0 0 0 4px rgba(184,197,211,.3);flex:none}
+.light[data-s="ok"] .bulbo{background:#16A34A;box-shadow:0 0 0 4px rgba(22,163,74,.22)}
+.light[data-s="err"] .bulbo{background:var(--brasa);box-shadow:0 0 0 4px rgba(228,87,46,.22)}
+.light[data-s="wait"] .bulbo{background:#F59E0B;box-shadow:0 0 0 4px rgba(245,158,11,.25)}
+.olsteps{list-style:none;padding:0;margin:0;counter-reset:o;display:flex;flex-direction:column;gap:12px}
+.olsteps li{counter-increment:o;display:flex;gap:12px;font-size:14.5px;align-items:flex-start}
+.olsteps li::before{content:counter(o);width:28px;height:28px;border-radius:50%;background:var(--brasa-suave);color:var(--brasa);font:700 13px var(--mono);display:grid;place-items:center;flex:none}
+
+/* Acordeones */
+.acc{background:#fff;border:1px solid var(--linea);border-radius:var(--r);margin-bottom:12px;box-shadow:var(--sombra);overflow:hidden}
+.acc>summary{list-style:none;cursor:pointer;padding:15px 18px;display:flex;align-items:center;gap:12px}
+.acc>summary::-webkit-details-marker{display:none}
+.acc>summary .ai{width:36px;height:36px;border-radius:10px;background:var(--papel);color:var(--acero);display:grid;place-items:center;flex:none}
+.acc[open]>summary .ai{background:var(--tinta);color:#fff}
+.acc>summary b{font-family:var(--display);font-size:17px;display:block}
+.acc>summary small{display:block;color:var(--gris);font-size:13px}
+.acc>summary .chev{margin-left:auto;transition:transform .2s;color:var(--acero-claro)}
+.acc[open]>summary .chev{transform:rotate(180deg)}
+.acc .inner{padding:4px 18px 18px;border-top:1px solid var(--linea-2)}
+.acc .inner>*:first-child{margin-top:14px}
+.prompt-ta{font-family:var(--mono);font-size:12.3px;min-height:130px;background:#FBFDFE}
+
+/* Resumen lateral */
+.sum h3{margin-bottom:10px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.stat{background:var(--papel);border-radius:12px;padding:10px 12px}
+.stat b{display:block;font:800 24px var(--display);letter-spacing:-.02em;line-height:1.1}
+.stat span{font-size:12.3px;color:var(--gris)}
+.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.checks li{display:flex;gap:9px;align-items:center;color:var(--gris)}
+.checks li .ck{width:20px;height:20px;border-radius:50%;border:2px solid var(--linea);display:grid;place-items:center;flex:none}
+.checks li.on{color:var(--tinta)}
+.checks li.on .ck{background:var(--forjado);border-color:var(--forjado);color:#fff}
+.checks li .ck svg{width:12px;height:12px}
+.docname{margin-top:14px;padding:11px 13px;border-radius:11px;background:var(--tinta);color:#C3D3E2;font-size:13.5px}
+.docname b{color:#fff}
+
+/* Generación */
+.agents{display:flex;flex-direction:column;gap:10px}
+.agent{background:#fff;border:1px solid var(--linea);border-radius:var(--r);box-shadow:var(--sombra);overflow:hidden;transition:border-color .2s}
+.agent-h{display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer}
+.agent .ai{width:42px;height:42px;border-radius:12px;background:color-mix(in srgb,var(--c) 14%,#fff);color:var(--c);display:grid;place-items:center;flex:none;transition:all .2s}
+.agent .ai svg{width:20px;height:20px}
+.agent-t{flex:1;min-width:0}
+.agent-t b{display:block;font-family:var(--display);font-size:16.5px}
+.agent-t span{display:block;font-size:13px;color:var(--gris)}
+.pill{font-size:12.5px;font-weight:700;border-radius:999px;padding:4px 10px;background:var(--linea-2);color:var(--gris);white-space:nowrap}
+.agent[data-s="run"]{border-color:#F59E0B}
+.agent[data-s="run"] .ai{background:var(--c);color:#fff;animation:pulse 1s infinite alternate}
+.agent[data-s="run"] .pill{background:#FFF1D6;color:#8A5A00}
+.agent[data-s="ok"] .ai{background:var(--c);color:#fff}
+.agent[data-s="ok"] .pill{background:var(--forjado-suave);color:var(--forjado)}
+.agent[data-s="err"]{border-color:var(--brasa)}
+.agent[data-s="err"] .pill{background:var(--brasa-suave);color:var(--brasa)}
+.agent-b{display:none;padding:4px 18px 16px 72px;font-size:14px;border-top:1px solid var(--linea-2);background:#FBFDFE}
+.agent.open .agent-b{display:block}
+@media(max-width:600px){.agent-b{padding-left:18px}}
+@keyframes pulse{from{transform:scale(1);box-shadow:0 0 0 0 rgba(228,87,46,.5)}to{transform:scale(1.06);box-shadow:0 0 0 10px rgba(228,87,46,0)}}
+.forging{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:14px;background:var(--tinta);color:#fff;margin-bottom:16px}
+.forging .spark{width:44px;height:44px;border-radius:12px;background:var(--brasa);display:grid;place-items:center;flex:none;animation:pulse 1s infinite alternate}
+.forging.done .spark{background:var(--forjado);animation:none}
+.forging.err .spark{animation:none}
+.forging b{font-family:var(--display);font-size:18px;display:block}
+.forging span{font-size:14px;color:#C3D3E2}
+.mini-list{margin:10px 0 0;padding:0;list-style:none}
+.mini-list li{padding:5px 0;border-bottom:1px solid var(--linea-2)}
+.mini-list li:last-child{border-bottom:0}
+.code{display:inline-block;font:700 11px var(--mono);border-radius:5px;padding:1px 6px;margin-right:6px;background:var(--linea-2);color:var(--acero)}
+
+/* Guía */
+.res-head{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.res-head h2{font-family:var(--display);font-weight:800;font-size:clamp(24px,3vw,32px);letter-spacing:-.02em;margin:0;flex:1;min-width:240px;line-height:1.1}
+.doc{background:#fff;border:1px solid var(--linea);border-radius:18px;box-shadow:var(--sombra-alta);padding:40px 44px;max-width:900px;margin:0 auto}
+@media(max-width:700px){.doc{padding:22px 16px}}
+.doc-h{border-bottom:3px solid var(--tinta);padding-bottom:18px;margin-bottom:26px}
+.doc-kind{font:600 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--brasa);margin:0 0 6px}
+.doc-h h1{font-family:var(--display);font-weight:800;font-size:clamp(26px,3.4vw,36px);letter-spacing:-.025em;line-height:1.05;margin:0 0 12px}
+.meta{display:flex;flex-wrap:wrap;gap:6px}
+.meta span{font-size:12.8px;font-weight:600;background:var(--papel);color:var(--acero);border-radius:999px;padding:4px 11px}
+.dsec{margin-bottom:28px}
+.dsec h2{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:-.01em;margin:0 0 10px;display:flex;align-items:center;gap:10px}
+.dsec h2 .num{width:28px;height:28px;border-radius:8px;background:var(--tinta);color:#fff;font:700 13px var(--mono);display:grid;place-items:center;flex:none}
+.dsec p{margin:0 0 10px;max-width:75ch}
+.sublab{font-size:13px;font-weight:700;color:var(--acero-claro);margin:14px 0 6px}
+.row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--linea-2);font-size:14.5px;align-items:flex-start}
+.row:last-child{border-bottom:0}
+.row .code{margin-top:2px;flex:none}
+.code.cg{background:#E6F0FA;color:var(--c-ctx)}
+.code.ce{background:#EEEAFB;color:var(--c-comp)}
+.code.bl{background:var(--forjado-suave);color:var(--forjado)}
+.code.tm{background:var(--tinta);color:#fff}
+.row .hrs{margin-left:auto;font-size:12.5px;color:var(--gris);white-space:nowrap}
+.blk{font-weight:700;margin:16px 0 4px;display:flex;gap:8px;align-items:baseline}
+.blk small{font-weight:500;color:var(--gris)}
+.tbl-wrap{overflow-x:auto}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+table.t th{background:var(--tinta);color:#fff;text-align:left;padding:9px 11px;font-size:12.5px;font-weight:700}
+table.t td{padding:9px 11px;border-bottom:1px solid var(--linea-2);vertical-align:top}
+table.t tr:nth-child(even) td{background:#FAFCFE}
+.peso{font-weight:800;color:var(--brasa);white-space:nowrap}
+.note{margin-top:12px;padding:11px 14px;background:var(--papel);border-left:4px solid var(--forjado);border-radius:8px;font-size:14px}
+.demo-flag{background:#FFF8E6;border:1px solid #F3DDA0;color:#6B4E00;border-radius:12px;padding:11px 15px;font-size:14px;margin:0 auto 16px;max-width:900px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.demo-flag svg{color:#C98200}
+
+/* Navegación inferior */
+.bottomnav{position:fixed;left:0;right:0;bottom:0;z-index:35;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--linea)}
+.bn-in{max-width:1180px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px}
+.bn-hint{flex:1;text-align:center;font-size:14px;color:var(--gris)}
+.bn-hint b{color:var(--tinta)}
+@media(max-width:600px){.bn-hint{display:none}.bn-in{justify-content:space-between}}
+
+/* Modal */
+.modal{position:fixed;inset:0;z-index:60;background:rgba(15,34,55,.55);display:none;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto}
+.modal.on{display:flex}
+.modal-box{background:#fff;border-radius:18px;max-width:760px;width:100%;box-shadow:var(--sombra-alta);overflow:hidden}
+.modal-head{display:flex;align-items:center;gap:12px;padding:16px 20px;background:var(--tinta);color:#fff}
+.modal-head h2{font-family:var(--display);font-size:22px;margin:0;flex:1}
+.modal-head button{background:transparent;border:1px solid #4A6787;color:#fff;border-radius:9px;padding:6px 10px}
+.modal-body{padding:18px 20px 22px}
+.glos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:600px){.glos{grid-template-columns:1fr}}
+.glos div{background:var(--papel);border-radius:12px;padding:12px 14px}
+.glos b{display:block;font-family:var(--display);font-size:16px;margin-bottom:2px}
+.glos span{font-size:13.8px;color:var(--acero)}
+.hist{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--linea);border-radius:12px;margin-bottom:8px}
+.hist-t{flex:1;min-width:0;cursor:pointer}
+.hist-t b{display:block;font-size:15px}
+.hist-t span{font-size:12.8px;color:var(--gris)}
+.hist:hover{border-color:var(--acero-claro)}
+.iconbtn{width:34px;height:34px;border-radius:9px;border:1.5px solid var(--linea);background:#fff;color:var(--acero);display:grid;place-items:center;padding:0}
+.iconbtn:hover{border-color:var(--brasa);color:var(--brasa)}
+.empty{text-align:center;color:var(--gris);padding:30px 10px}
+
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:var(--tinta);color:#fff;padding:11px 18px;border-radius:12px;font-size:14.5px;font-weight:600;opacity:0;pointer-events:none;transition:all .25s;z-index:70;max-width:90vw;text-align:center;box-shadow:var(--sombra-alta)}
+.toast.on{opacity:1;transform:translateX(-50%)}
+footer{max-width:1180px;margin:0 auto;padding:0 16px 30px;font-size:13px;color:#6E8299}
+footer hr{border:0;border-top:1px solid var(--linea);margin:0 0 14px}
+
+@media print{
+  body{background:#fff;padding:0}
+  .topbar,.bottomnav,.res-head,.demo-flag,.okbox,footer,.toast,.modal{display:none!important}
+  main{padding:0;max-width:none}
+  .screen{display:none!important}
+  
+  .doc{box-shadow:none;border:0;padding:0;max-width:none}
+  .dsec{break-inside:avoid-page}
+  table.t th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+/* ══ v2 ══ */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:640px){.grid3{grid-template-columns:1fr}}
+.feats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:960px){.feats{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.feats{grid-template-columns:1fr}}
+.feat{background:#fff;border:1px solid var(--linea);border-radius:14px;padding:16px;border-top:4px solid var(--c)}
+.feat .pi{width:38px;height:38px;border-radius:11px;background:color-mix(in srgb,var(--c) 14%,#fff);color:var(--c);display:grid;place-items:center;margin-bottom:10px}
+.feat b{display:block;font-family:var(--display);font-size:17px;margin-bottom:3px}
+.feat span{display:block;font-size:13.5px;color:var(--gris);line-height:1.45}
+.importbar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:var(--tinta);color:#EAF1F7;border-radius:var(--r);padding:14px 16px;margin-bottom:18px}
+.importbar .pi{width:40px;height:40px;border-radius:11px;background:var(--brasa);display:grid;place-items:center;flex:none}
+.importbar b{display:block;font-size:15px}
+.importbar span{display:block;font-size:13.3px;color:#A9C0D4}
+.importbar .btn-dark{background:#fff;color:var(--tinta)}
+.importbar .btn-dark:hover{background:#EAF1F7}
+.inacc{border-top:1px solid var(--linea-2);margin-top:4px;padding-top:12px}
+.inacc>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--acero)}
+.inacc>summary::-webkit-details-marker{display:none}
+.inacc>summary .chev{margin-left:auto;transition:transform .2s;color:var(--acero-claro)}
+.inacc[open]>summary .chev{transform:rotate(180deg)}
+.rec{display:inline-block;font:700 11px var(--texto);background:var(--forjado-suave);color:var(--forjado);border-radius:999px;padding:2px 8px;vertical-align:2px;margin-left:4px}
+.checkgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:560px){.checkgrid{grid-template-columns:1fr}}
+.checkgrid label{display:flex;gap:9px;align-items:center;margin:0;padding:9px 11px;border-radius:10px;background:var(--papel);font-weight:500;color:var(--tinta);cursor:pointer;font-size:14px}
+.checkgrid input{width:18px;height:18px;accent-color:var(--forjado);margin:0}
+.checkgrid label:has(input:checked){background:var(--forjado-suave)}
+.drop{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;border:2px dashed var(--linea);border-radius:14px;padding:24px;cursor:pointer;color:var(--acero);margin:0;font-weight:500}
+.drop svg{width:30px;height:30px;color:var(--brasa)}
+.drop b{font-size:15px;color:var(--tinta)}
+.drop span{font-size:13px;color:var(--gris)}
+.drop.over,.drop:hover{border-color:var(--brasa);background:var(--brasa-suave)}
+
+
+/* ══ Estilos propios de la app (se añaden a forja-base.css). Prefijo fa- para no chocar con clases de Forja ══ */
+.logo .anv{background:linear-gradient(135deg,var(--brasa),#C98200)}
+.hero{padding:44px 38px 30px}.hero h1{max-width:20ch}.fa-inicio{margin:14px 0 0;font-size:14px;color:#C3D3E2}.fa-inicio:empty{display:none}.fa-inicio b{color:#fff}
+/* autores con ORCID */
+.fa-autores{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,.14)}.fa-autores-cap{font:600 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:#8FA7BE;width:100%;margin-bottom:-4px}
+.fa-autor{display:flex;gap:11px;align-items:center}.fa-autor b{display:block;color:#fff;font:700 16px var(--display)}.fa-autor small{display:block;color:#9DB6CD;font-size:12.5px;max-width:34ch}.fa-av{width:44px;height:44px;border-radius:14px;background:var(--c);color:#fff;display:grid;place-items:center;font:800 15px var(--display);flex:none;box-shadow:0 10px 20px -12px var(--c)}.fa-x{font:300 26px var(--display);color:#5D7C9B}
+.fa-orcid{display:block;margin-top:2px;font:600 11.5px var(--mono);letter-spacing:.02em;color:#7FD6C4!important;text-decoration:none}.fa-orcid:hover{text-decoration:underline}.fa-idea{width:100%;margin:2px 0 0;font-size:13px;color:#9DB6CD;max-width:72ch}
+/* zonas «dónde va cada cosa» */
+.zonas{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:760px){.zonas{grid-template-columns:1fr}}.zona{border-radius:16px;padding:14px 16px;border:2px solid}.zona.l{border-color:#9FD9C4;background:var(--forjado-suave)}.zona.n{border-color:#E9C46A;background:#FFF8E6}.zona h4{margin:0 0 6px;font-family:var(--display);font-size:18px}.zona ul{margin:0;padding-left:18px;font-size:14px;line-height:1.7}
+.sec-title+.zonas,.sec-title+.journey{margin-top:14px}
+/* formularios y utilidades */
+.field input[type=text],.field input[type=number],.field select,.field textarea{width:100%;padding:10px 12px;border:1.5px solid var(--linea);border-radius:10px;font:15px var(--texto);background:#fff;color:var(--tinta)}.field textarea{line-height:1.55;resize:vertical}.field label{display:block;font:700 13px var(--texto);color:var(--acero);margin-bottom:5px}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--brasa);box-shadow:0 0 0 3px rgba(228,87,46,.18)}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:760px){.grid3,.grid2{grid-template-columns:1fr}}
+.card .actions{margin-top:12px}.card h3{margin-top:0}.fa-chk{display:flex;gap:8px;align-items:center;font:500 14.5px var(--texto);cursor:pointer}
+.fa-chip{display:inline-block;font:700 11.5px var(--texto);border-radius:999px;padding:3px 10px;background:var(--linea-2);color:var(--acero)}.fa-chip.ok{background:var(--forjado-suave);color:#0B5A4E}.fa-chip.aviso{background:#FFF1D6;color:#7A4B00}.fa-chip.error{background:var(--brasa-suave);color:var(--aviso)}
+.fa-pre{white-space:pre-wrap;font:12.5px/1.5 var(--mono);background:#0B1C2E;color:#D6E4F0;border-radius:12px;padding:12px;max-height:300px;overflow:auto}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--linea);border-top-color:var(--brasa);border-radius:50%;animation:fa-s .8s linear infinite;vertical-align:-2px}@keyframes fa-s{to{transform:rotate(360deg)}}
+.fa-foot{max-width:1180px;margin:10px auto 0;padding:0 16px 110px}.fa-foot hr{border:0;border-top:1px solid var(--linea);margin:0 0 16px}.fa-foot p{margin:0;font-size:12.8px;color:#6E8299;max-width:76ch;line-height:1.55}
+.glos div{display:block;margin-bottom:12px}.glos b{display:block}
+table{border-collapse:collapse;width:100%;font-size:13.8px}th{background:var(--papel);color:var(--acero);font:700 11px var(--mono);letter-spacing:.07em;text-transform:uppercase;text-align:left}td,th{padding:10px 12px;border-bottom:1px solid var(--linea-2);vertical-align:top}.table-wrap{overflow-x:auto}
+/* barra superior con muchos pasos: solo el actual lleva nombre (evita desbordes) */
+.tb-in{gap:10px}.stepper{min-width:0;flex:1 1 auto;justify-content:center;gap:2px}.sdot:not([data-state="now"]) .lbl{display:none}.sdot{padding-left:4px;padding-right:4px}.sline{min-width:8px;flex:0 1 22px}.logo,.tb-tools{flex:none}
+@media(max-width:900px){.tb-btn .lbl{display:none}}@media(max-width:720px){.hero{padding:28px 20px 24px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* ══ SimuPlanta AI ══ */
+.logo em{font-style:normal;color:var(--brasa)}
+.fa-rol{color:#7FD6C4!important;font:600 11px var(--mono)!important;letter-spacing:.04em;text-transform:uppercase;margin-bottom:1px}
+.muted{color:var(--gris)}
+.fa-lab{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px;align-items:start}
+@media(max-width:900px){.fa-lab{grid-template-columns:minmax(0,1fr)}}
+.fa-ctrl{position:sticky;top:76px}@media(max-width:900px){.fa-ctrl{position:static}}
+.fa-ctrl .field{margin-bottom:12px}
+.fa-sl{margin-bottom:14px}.fa-slh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.fa-slh label{font:700 13px var(--texto);color:var(--acero)}
+.fa-slh output{font:700 12.5px var(--mono);color:var(--brasa-osc);background:var(--brasa-suave);padding:2px 8px;border-radius:999px;white-space:nowrap}
+.fa-sl input[type=range]{width:100%;accent-color:var(--brasa);margin:6px 0 2px}
+.help{margin:3px 0 0;font-size:12.8px;color:var(--gris)}
+.fa-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+@media(max-width:1100px){.fa-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.fa-kpi{background:#fff;border:1px solid var(--linea);border-top:4px solid var(--c);border-radius:var(--r);padding:12px 14px;box-shadow:var(--sombra)}
+.fa-kpi span{display:block;font:600 11px var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--gris)}
+.fa-kpi b{display:block;font:800 30px/1.15 var(--display);color:var(--tinta);margin:3px 0 1px}
+.fa-kpi small{font-size:12px;color:var(--gris)}
+.fa-kpi.alto{background:var(--brasa-suave);border-color:#F2B8A4;border-top-color:var(--c)}.fa-kpi.alto b{color:var(--aviso)}
+.fa-fac{display:grid;gap:9px}
+.fa-fr{display:grid;grid-template-columns:minmax(96px,150px) minmax(0,1fr) 44px;gap:10px;align-items:center;font-size:14px}
+.fa-fn i{font:600 10.5px var(--mono);font-style:normal;letter-spacing:.05em;text-transform:uppercase;color:#fff;background:var(--brasa-osc);padding:1px 6px;border-radius:999px;margin-left:4px;white-space:nowrap}
+.fa-fr.lim .fa-fn{font-weight:700}
+.fa-fb{display:block;height:12px;border-radius:999px;background:var(--linea-2);overflow:hidden}.fa-fb span{display:block;height:100%;border-radius:999px;transition:width .25s}
+.fa-fr b{font:700 13px var(--mono);text-align:right}
+@media(max-width:480px){.fa-fr{grid-template-columns:minmax(0,1fr) 44px}.fa-fr .fa-fb{grid-column:1/-1;grid-row:2}}
+.fa-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.fa-tabs button{border:1.5px solid var(--linea);background:#fff;color:var(--acero);font:700 13.5px var(--texto);padding:8px 14px;border-radius:999px;cursor:pointer}
+.fa-tabs button[aria-pressed=true]{background:var(--tinta);border-color:var(--tinta);color:#fff}
+.fa-chart{width:100%;min-width:0}.fa-chart canvas{display:block;max-width:100%}
+.fa-tw{max-height:420px;overflow:auto}.fa-tw thead th{position:sticky;top:0;z-index:1}
+.fa-acc{white-space:nowrap;text-align:right}.fa-acc .btn{margin-left:4px}
+.fa-cmp{display:grid;gap:10px}.fa-cr{display:grid;grid-template-columns:minmax(150px,270px) minmax(0,1fr) minmax(86px,auto);gap:10px;align-items:center;font-size:14px}
+.fa-cb{display:block;position:relative;height:26px}.fa-cb .b,.fa-cb .s{display:block;height:11px;border-radius:999px;position:absolute;left:0;min-width:2px}.fa-cb .b{top:0;background:#C98200}.fa-cb .s{top:14px;background:var(--brasa)}
+.fa-cr b{font:700 12.5px var(--mono);text-align:right;white-space:nowrap}
+@media(max-width:560px){.fa-cr{grid-template-columns:minmax(0,1fr) auto}.fa-cr .fa-cb{grid-column:1/-1;grid-row:2}}
+.fa-leg{margin:12px 0 0;font-size:12.8px;color:var(--gris)}.fa-leg i{display:inline-block;width:12px;height:6px;border-radius:999px;margin:0 5px 1px 10px}.fa-leg i:first-child{margin-left:0}
+.fa-ia{background:#FFF8E6;border:1.5px solid #E9C46A;border-radius:12px;padding:6px 16px;margin-top:12px}.fa-ia p{margin:8px 0}.fa-iah{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.card p{margin:0 0 8px}.card .table-wrap{margin:8px 0}
+.fa-cn{font-size:13.5px;line-height:1.35}.fa-cn b{font:700 12px var(--mono);color:var(--brasa-osc);text-align:left}
+</style></head>
+<body>
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m10 8 6 4-6 4z"/></symbol>
+  <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></symbol>
+  <symbol id="i-quiz" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8M13 12h8M13 18h8"/></symbol>
+  <symbol id="i-cards" viewBox="0 0 24 24"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6M10 22h4"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></symbol>
+  <symbol id="i-archive" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/></symbol>
+  <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 3v4M17 5h4M5 17v4M3 19h4"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></symbol>
+  <symbol id="i-form" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+  <symbol id="i-tablet" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M12 18h.01"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M12 18h.01"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M6 14l1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 7h7M9 11h5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-print" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v18M7 21h10M5 7h14M5 7l-3 7a3 3 0 0 0 6 0zM19 7l-3 7a3 3 0 0 0 6 0z"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></symbol>
+</svg>
+
+<div class="topbar">
+  <div class="tb-in">
+    <button class="logo" id="goHome" type="button" aria-label="Inicio"><span class="anv"><svg class="i"><use href="#i-leaf"/></svg></span><span>Simu<em>Planta</em> AI</span></button>
+    <nav class="stepper" id="stepper" aria-label="Pasos"></nav>
+    <div class="tb-tools"><button class="tb-btn" id="btnIA" type="button"><svg class="i"><use href="#i-key"/></svg><span class="lbl">IA</span></button><button class="tb-btn" id="btnHelp" type="button"><svg class="i"><use href="#i-help"/></svg><span class="lbl">Ayuda</span></button></div>
+  </div>
+  <div class="progress"><span id="progBar"></span></div>
+</div>
+
+<main id="app">
+<!-- 0 · INICIO: portada con el qué, el para quién y los autores -->
+<section class="screen" data-step="0">
+  <div class="hero">
+    <p class="eyebrow">Fisiología vegetal · Prácticas virtuales · Universidad Miguel Hernández de Elche</p>
+    <h1>Cambia el ambiente y mira cómo <em>responde tu cultivo</em></h1>
+    <p class="lede">Elige una de 26 especies, ajusta riego, salinidad, temperatura, luz y nutrición, y observa día a día la fotosíntesis, la conductancia estomática, la biomasa y el estrés. Guarda escenarios, compáralos y descarga el informe.</p>
+    <div class="actions"><button class="btn btn-primary btn-big" id="btnStart" type="button"><svg class="i"><use href="#i-play"/></svg>Empezar</button><button class="btn btn-ghost btn-big" id="btnEjemplo" type="button"><svg class="i"><use href="#i-eye"/></svg>Ver un ejemplo</button></div>
+    <p class="fa-inicio" id="inicioProj"></p>
+    <div class="fa-autores"><span class="fa-autores-cap">Realizada entre</span>
+      <div class="fa-autor"><span class="fa-av" style="--c:#E4572E">ME</span><div><b>María Emma García Pastor</b><small class="fa-rol">Idea original · diseño fisiológico</small><small>Universidad Miguel Hernández de Elche</small><a class="fa-orcid" href="https://orcid.org/0000-0002-4959-9419" target="_blank" rel="noopener">ORCID 0000-0002-4959-9419</a></div></div><span class="fa-x">×</span>
+      <div class="fa-autor"><span class="fa-av" style="--c:#0E8C7A">FB</span><div><b>Fernando Borrás Rocher</b><small class="fa-rol">Implementación Forja</small><small>Universidad Miguel Hernández de Elche</small><a class="fa-orcid" href="https://orcid.org/0000-0002-5519-4573" target="_blank" rel="noopener">ORCID 0000-0002-5519-4573</a></div></div>
+      <p class="fa-idea">Idea original de María Emma García Pastor: laboratorio virtual y herramienta preliminar para escenarios de cambio climático y pre-ensayo en invernadero.</p></div>
+  </div>
+  <h2 class="sec-title">Cómo funciona</h2>
+  <div class="journey" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+    <div class="jstop" style="--c:#0E8C7A"><span class="jn">1</span><div class="ji"><svg class="i"><use href="#i-leaf"/></svg></div><b>Elige el cultivo</b><span>26 especies: hortalizas, leñosos mediterráneos, subtropicales, cereales, forrajeras e industriales.</span></div>
+    <div class="jstop" style="--c:#1F6FB2"><span class="jn">2</span><div class="ji"><svg class="i"><use href="#i-sliders"/></svg></div><b>Ajusta el ambiente</b><span>Riego, salinidad, temperatura, luz y nutrición. La simulación se actualiza al instante.</span></div>
+    <div class="jstop" style="--c:#6B4FD8"><span class="jn">3</span><div class="ji"><svg class="i"><use href="#i-scale"/></svg></div><b>Compara escenarios</b><span>Guarda variantes, identifica el factor limitante y propón una intervención.</span></div>
+    <div class="jstop" style="--c:#E4572E"><span class="jn">4</span><div class="ji"><svg class="i"><use href="#i-doc"/></svg></div><b>Interpreta y descarga</b><span>Informe, datos en CSV y, si quieres, una interpretación con IA revisada por código.</span></div>
+  </div>
+  <h2 class="sec-title">Dónde va cada cosa</h2>
+  <div class="zonas"><div class="zona l"><h4>Siempre en tu navegador</h4><ul><li>La simulación y todos los cálculos</li><li>Tus escenarios guardados</li><li>Tu clave de IA, si la usas</li><li>Las descargas</li></ul></div>
+    <div class="zona n"><h4>Sale hacia tu proveedor de IA</h4><ul><li>Solo si pulsas «Interpretar con IA»</li><li>Los parámetros del escenario y sus resultados numéricos</li><li>Ningún dato personal ni texto tuyo</li></ul></div></div>
+</section>
+
+<!-- 1 · LABORATORIO -->
+<section class="screen" data-step="1">
+  <header class="sh" style="--c:#0E8C7A"><div class="sh-ico"><svg class="i"><use href="#i-sliders"/></svg></div><div><p class="sh-step">Paso 1 de 3</p><h2>Laboratorio</h2><p class="sh-lede">Elige la especie y mueve los controles: los resultados cambian al instante. Cuando tengas un escenario interesante, guárdalo para compararlo.</p></div></header>
+  <div class="fa-lab">
+    <div class="card fa-ctrl">
+      <h3>Escenario</h3>
+      <div class="field"><label for="species">Especie / cultivo</label><select id="species"></select></div>
+      <div class="field"><label for="days">Días de simulación</label><input type="number" id="days" min="7" max="120" inputmode="numeric"><p class="help">Entre 7 y 120 días.</p></div>
+      <div class="fa-sl"><div class="fa-slh"><label for="irrDef">Déficit de riego</label><output id="vIrr" for="irrDef"></output></div><input type="range" id="irrDef" min="0" max="80" step="1"><p class="help">0 % = riego óptimo · 80 % = sequía severa</p></div>
+      <div class="fa-sl"><div class="fa-slh"><label for="sal">Salinidad (CE)</label><output id="vSal" for="sal"></output></div><input type="range" id="sal" min="0" max="12" step="0.1"><p class="help">Conductividad eléctrica del agua o del suelo</p></div>
+      <div class="fa-sl"><div class="fa-slh"><label for="temp">Temperatura media</label><output id="vTemp" for="temp"></output></div><input type="range" id="temp" min="5" max="42" step="1"></div>
+      <div class="fa-sl"><div class="fa-slh"><label for="par">Luz (PAR)</label><output id="vPar" for="par"></output></div><input type="range" id="par" min="50" max="2000" step="10"><p class="help">µmol m⁻² s⁻¹ · mediodía típico</p></div>
+      <div class="fa-sl"><div class="fa-slh"><label for="nut">Nutrición relativa</label><output id="vNut" for="nut"></output></div><input type="range" id="nut" min="20" max="120" step="1"><p class="help">N-P-K integrado (simplificado)</p></div>
+      <div class="actions"><button class="btn btn-primary" id="btnSave" type="button"><svg class="i"><use href="#i-bookmark"/></svg>Guardar escenario</button><button class="btn btn-ghost" id="btnOpt" type="button"><svg class="i"><use href="#i-refresh"/></svg>Valores óptimos</button></div>
+      <p class="help" id="saveInfo"></p>
+    </div>
+    <div class="fa-res">
+      <div class="fa-kpis" id="kpis" aria-live="polite"></div>
+      <div class="card"><h3>¿Qué limita al cultivo?</h3><p class="sub">Cada factor va de 0 (anula la fotosíntesis) a 1 (sin limitación). El más bajo es el factor limitante.</p><div id="factores"></div></div>
+      <div class="card">
+        <div class="fa-tabs" role="tablist" aria-label="Vista de resultados"><button type="button" role="tab" id="tabEvo" aria-pressed="true" data-tab="evo">Evolución temporal</button><button type="button" role="tab" id="tabTab" aria-pressed="false" data-tab="tab">Tabla diaria</button></div>
+        <div id="pane-evo"><div class="fa-chart" id="chartWrap"><canvas id="chart" role="img" aria-label="Gráfico de evolución"></canvas></div><p class="help">Fotosíntesis y conductancia en escala relativa (0–100 %, eje izquierdo). Biomasa como índice con día 0 = 1 (eje derecho).</p></div>
+        <div id="pane-tab" hidden><div class="table-wrap fa-tw" id="tablaDia"></div></div>
+      </div>
+      <div class="aviso"><b>Modelo didáctico.</b> Usa factores multiplicativos calibrados por especie (fotosíntesis, estomas, biomasa). No sustituye a DSSAT ni a APSIM ni a ensayos reales: sirve para razonar sobre tendencias, no para predecir una cosecha.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 · COMPARAR -->
+<section class="screen" data-step="2">
+  <header class="sh" style="--c:#6B4FD8"><div class="sh-ico"><svg class="i"><use href="#i-scale"/></svg></div><div><p class="sh-step">Paso 2 de 3</p><h2>Comparar escenarios</h2><p class="sh-lede">Contrasta los escenarios que has guardado: qué factor limita en cada uno, cuánta biomasa se alcanza y cuánto estrés acumula el cultivo.</p></div></header>
+  <div id="cmpBody"></div>
+</section>
+
+<!-- 3 · INFORME -->
+<section class="screen" data-step="3">
+  <header class="sh" style="--c:#E4572E"><div class="sh-ico"><svg class="i"><use href="#i-doc"/></svg></div><div><p class="sh-step">Paso 3 de 3</p><h2>Informe</h2><p class="sh-lede">Resumen del escenario que tienes en el laboratorio, con una pregunta para el alumnado. Puedes pedir una interpretación a la IA y descargar el informe y los datos.</p></div></header>
+  <div class="card" id="informe"></div>
+  <div class="card" id="iaCard">
+    <h3>Interpretación con IA <span class="fa-chip">opcional</span></h3>
+    <p class="sub">La IA redacta una lectura del escenario; el código comprueba que las cifras que menciona estén en él y marca las que no.</p>
+    <div class="actions" style="margin-top:0"><button class="btn btn-primary" id="btnIAint" type="button"><svg class="i"><use href="#i-sparkles"/></svg>Interpretar con IA</button></div>
+    <div id="iaOut" aria-live="polite"></div>
+  </div>
+  <div class="card"><h3>Descargar</h3><div class="actions" style="margin-top:8px"><button class="btn btn-primary" id="btnInf" type="button"><svg class="i"><use href="#i-download"/></svg>Informe HTML</button><button class="btn btn-ghost" id="btnCsv" type="button"><svg class="i"><use href="#i-download"/></svg>Serie diaria (CSV)</button><button class="btn btn-ghost" id="btnCsvEsc" type="button"><svg class="i"><use href="#i-download"/></svg>Escenarios (CSV)</button></div><p class="help">Los CSV usan «;» como separador y coma decimal, para abrirse bien en Excel en español.</p></div>
+</section>
+</main>
+
+<footer class="fa-foot"><hr><p><b>SimuPlanta AI</b> · María Emma García Pastor, Fernando Borrás Rocher · Universidad Miguel Hernández de Elche. <b>Modelo didáctico:</b> factores multiplicativos calibrados por especie; no sustituye a modelos de proceso (DSSAT, APSIM) ni a ensayos experimentales. La interpretación con IA puede equivocarse: el código solo comprueba que las cifras que cita estén en tu escenario. Tus escenarios se guardan solo en este navegador. MIT · v2.0.0 · <a href="https://fborrasumh.github.io/ia/" target="_blank" rel="noopener">Catálogo IA</a></p></footer>
+<div class="bottomnav"><div class="bn-in"><button class="btn btn-ghost" id="navBack" type="button"><svg class="i"><use href="#i-left"/></svg>Atrás</button><div class="bn-hint" id="navHint"></div><button class="btn btn-primary" id="navNext" type="button"><span id="navNextTxt">Siguiente</span><svg class="i"><use href="#i-right"/></svg></button></div></div>
+
+<div class="modal" id="mIA" role="dialog" aria-modal="true" aria-labelledby="mIAT"><div class="modal-box"><div class="modal-head"><h2 id="mIAT">Inteligencia artificial</h2><button type="button" data-close>Cerrar</button></div><div class="modal-body">
+  <div class="field"><label for="selProv">Proveedor</label><select id="selProv"><option value="openai">OpenAI</option><option value="gemini">Google Gemini</option><option value="anthropic">Anthropic Claude</option></select></div>
+  <div class="field"><label for="apiKey">Tu clave de API</label><div class="keyrow"><input type="password" id="apiKey" autocomplete="off"><button class="eye" id="btnEye" type="button" aria-label="Ver"><svg class="i"><use href="#i-eye"/></svg></button></div></div>
+  <div class="field"><label for="modelo">Modelo</label><input type="text" id="modelo" list="modelos"><datalist id="modelos"></datalist></div>
+  <div class="actions"><button class="btn btn-ghost btn-sm" id="btnModelos" type="button">Ver los modelos de mi clave</button></div>
+  <p class="help" id="iaEstado">La clave se guarda solo en este navegador y se envía únicamente a tu proveedor. Cada persona usa la suya y paga su propio uso. Elige un modelo económico: este uso no necesita el más potente.</p></div></div></div>
+<div class="modal" id="mHelp" role="dialog" aria-modal="true" aria-labelledby="mHelpT"><div class="modal-box"><div class="modal-head"><h2 id="mHelpT">Ayuda</h2><button type="button" data-close>Cerrar</button></div><div class="modal-body"><div class="glos" id="glos"></div></div></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>const APP="simuplanta";const APP_NAME="SimuPlanta AI";const LOGO_ICON="leaf";
+"use strict";
+/* ── utilidades comunes (todas las apps Forja) ──────────────────────────────
+   Requiere que la app defina antes:  const APP = 'miapp';  (prefijo de almacenamiento)  */
+const $ = id => document.getElementById(id), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ico = n => `<svg class="i"><use href="#i-${n}"/></svg>`;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const uid = (p = '') => p + Math.random().toString(36).slice(2, 8);
+const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+const wc = s => (String(s || '').trim().match(/[\p{L}\p{N}]+/gu) || []).length;
+const chunk = (a, n) => { const o = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };
+const nf = n => Math.round(n).toLocaleString('es-ES');
+const mmss = s => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+const slug = s => norm(s).replace(/ /g, '_').slice(0, 40) || 'x';
+function toast(m, ms = 4200) { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), ms); }
+function dl(nombre, contenido, tipo) { const b = contenido instanceof Blob ? contenido : new Blob([contenido], {type: tipo}); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 2500); }
+
+/* librerías externas: solo desde cdnjs (la CSP no admite otros orígenes) */
+const LIB = {
+  mammoth: 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js',
+  jszip: 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+  pdf: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  pdfw: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+  docx: 'https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js'
+};
+function cargaLib(urls) {
+  return urls.reduce((p, u) => p.catch(() => new Promise((ok, ko) => { const s = document.createElement('script'); s.src = u; s.onload = ok; s.onerror = () => { s.remove(); ko(); }; document.head.appendChild(s); })), Promise.reject())
+    .catch(() => { throw new Error('No se pudo cargar una librería: ¿hay conexión?'); });
+}
+
+/* huella SHA-256 (con alternativa para file:// sin contexto seguro) y canonización estable */
+const canon = v => v === null || typeof v !== 'object' ? JSON.stringify(v) : Array.isArray(v) ? '[' + v.map(canon).join(',') + ']' : '{' + Object.keys(v).filter(k => v[k] !== undefined).sort().map(k => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}';
+function sha256js(bytes) {
+  const pr = []; for (let n = 2; pr.length < 64; n++) if (pr.every(p => n % p)) pr.push(n);
+  const fr = x => Math.floor((x - Math.floor(x)) * 4294967296), K = pr.map(p => fr(Math.cbrt(p))), H = pr.slice(0, 8).map(p => fr(Math.sqrt(p)));
+  const l = bytes.length, pad = new Uint8Array(((l + 9 + 63) >> 6) << 6); pad.set(bytes); pad[l] = 0x80;
+  const dv = new DataView(pad.buffer); dv.setUint32(pad.length - 8, Math.floor(l * 8 / 4294967296)); dv.setUint32(pad.length - 4, (l * 8) >>> 0);
+  const rr = (x, n) => (x >>> n) | (x << (32 - n)), W = new Uint32Array(64);
+  for (let i = 0; i < pad.length; i += 64) {
+    for (let t = 0; t < 16; t++) W[t] = dv.getUint32(i + t * 4);
+    for (let t = 16; t < 64; t++) { const s0 = rr(W[t - 15], 7) ^ rr(W[t - 15], 18) ^ (W[t - 15] >>> 3), s1 = rr(W[t - 2], 17) ^ rr(W[t - 2], 19) ^ (W[t - 2] >>> 10); W[t] = (W[t - 16] + s0 + W[t - 7] + s1) >>> 0; }
+    let [a, b, c, d, e, f, g, hh] = H;
+    for (let t = 0; t < 64; t++) { const S1 = rr(e, 6) ^ rr(e, 11) ^ rr(e, 25), ch = (e & f) ^ (~e & g), t1 = (hh + S1 + ch + K[t] + W[t]) >>> 0, S0 = rr(a, 2) ^ rr(a, 13) ^ rr(a, 22), mj = (a & b) ^ (a & c) ^ (b & c), t2 = (S0 + mj) >>> 0; hh = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0; }
+    [a, b, c, d, e, f, g, hh].forEach((v, j) => H[j] = (H[j] + v) >>> 0);
+  }
+  return H.map(v => v.toString(16).padStart(8, '0')).join('');
+}
+async function sha256(str) {
+  const b = new TextEncoder().encode(str);
+  if (window.crypto?.subtle) { try { return [...new Uint8Array(await crypto.subtle.digest('SHA-256', b))].map(x => x.toString(16).padStart(2, '0')).join(''); } catch {} }
+  return sha256js(b);
+}
+
+/* ── persistencia local (IndexedDB). La app define:  let S = {...};  y opcionalmente  const KEYP = () => 'main';  ── */
+const dbP = new Promise((ok, ko) => { const r = indexedDB.open(APP, 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error); });
+const kv = async (mode, fn) => { const d = await dbP; return new Promise((ok, ko) => { const tx = d.transaction('kv', mode), q = fn(tx.objectStore('kv')); tx.oncomplete = () => ok(q && q.result); tx.onerror = () => ko(tx.error); }); };
+const _key = () => (typeof KEYP === 'function' ? KEYP() : 'main');
+let _g;
+function guarda() { clearTimeout(_g); _g = setTimeout(() => kv('readwrite', s => s.put(S, _key())).catch(() => toast('No se pudo guardar en el navegador (¿demasiado material?)')), 500); }
+/* guardado inmediato: úsalo justo después de pagar una llamada a la IA, para no perder el resultado si se cierra la pestaña */
+const guardaYa = () => { clearTimeout(_g); return kv('readwrite', s => s.put(S, _key())).catch(() => toast('No se pudo guardar en el navegador')); };
+window.addEventListener('pagehide', () => { clearTimeout(_g); try { kv('readwrite', s => s.put(S, _key())); } catch {} });
+async function cargaEstado(key = _key()) { try { const p = await kv('readonly', s => s.get(key)); return p || null; } catch { return null; } }
+
+/* ── proveedores de IA con la clave de cada persona: OpenAI, Google Gemini, Anthropic Claude ──────────────
+   Mensajes: [{role:'system'|'user'|'assistant', content: string | [{t:'text',v}, {t:'img',mime,data:'data:...'}]}]
+   Uso:   const texto = await llm(msgs, {max: 2800});      const obj = await llmJSON(msgs, {max: 3500});
+   Las claves viven solo en localStorage de este navegador. La clave de OpenAI es compartida por todo el catálogo ('ia_openai_key'). */
+const PROV = {
+  openai: {n: 'OpenAI', m: 'gpt-6-luna', k: 'ia_openai_key'},
+  gemini: {n: 'Google Gemini', m: 'gemini-2.5-flash', k: APP + '_key_gemini'},
+  anthropic: {n: 'Anthropic Claude', m: 'claude-haiku-4-5-20251001', k: APP + '_key_anthropic'}
+};
+const getProv = () => PROV[localStorage.getItem(APP + '_prov')] ? localStorage.getItem(APP + '_prov') : 'openai';
+const getKey = (p = getProv()) => localStorage.getItem(PROV[p].k) || '';
+const getMod = (p = getProv()) => localStorage.getItem(APP + '_model_' + p) || PROV[p].m;
+const parseJ = tx => { tx = String(tx || '').trim().replace(/^```(?:json)?|```$/g, '').trim(); try { return JSON.parse(tx); } catch { const m = tx.match(/\{[\s\S]*\}/); if (m) try { return JSON.parse(m[0]); } catch {} } return null; };
+const partes = c => typeof c === 'string' ? [{t: 'text', v: c}] : c;
+function agrupa(msgs, rolA) { const o = []; for (const m of msgs.filter(m => m.role !== 'system')) { const r = m.role === 'assistant' ? rolA : 'user'; if (o.length && o.at(-1).role === r) o.at(-1).parts.push({t: 'text', v: '\n\n'}, ...partes(m.content)); else o.push({role: r, parts: [...partes(m.content)]}); } if (o.length && o[0].role !== 'user') o.unshift({role: 'user', parts: [{t: 'text', v: '.'}]}); return o; }
+const sysDe = msgs => msgs.filter(m => m.role === 'system').map(m => typeof m.content === 'string' ? m.content : m.content.map(p => p.v || '').join('')).join('\n\n');
+function httpErr(st, tx, pv, mod) {
+  if (st === 401 || st === 403 || (pv === 'gemini' && st === 400 && /API key|API_KEY/i.test(tx))) return new Error(`${PROV[pv].n} no reconoce tu clave. Revísala en el botón «IA».`);
+  if (st === 404 || /model_not_found|not found|does not exist/i.test(tx)) return new Error(`Tu clave no tiene acceso al modelo «${mod}». Elige otro en el botón «IA».`);
+  if (st === 429 && /quota|billing|credit|RESOURCE_EXHAUSTED/i.test(tx)) return new Error(`Tu cuenta de ${PROV[pv].n} no tiene saldo o ha alcanzado su límite.`);
+  if (st === 400 && /image|vision|multimodal|modalit/i.test(tx)) return new Error(`El modelo «${mod}» no admite imágenes. Elige uno con visión.`);
+  return new Error(`${PROV[pv].n} ${st}: ${String(tx).slice(0, 180)}`);
+}
+async function conReintentos(fn, pv) {
+  for (let k = 0; k < 5; k++) {
+    let r; try { r = await fn(); } catch { if (k >= 2) throw new Error(`No hay conexión con ${PROV[pv].n}.`); await sleep(1500); continue; }
+    if (r.ok) return r;
+    if (r.status === 429 || r.status >= 500) { const tx = await r.clone().text(); if (r.status === 429 && /quota|billing|credit/i.test(tx)) return r; await sleep(2 ** (k + 1) * 1000); continue; }
+    return r;
+  }
+  throw new Error(`${PROV[pv].n} no responde ahora mismo. Inténtalo de nuevo en un momento.`);
+}
+async function llm(msgs, {json = false, max = 2800} = {}) {
+  const pv = getProv(), key = getKey(pv), mod = getMod(pv);
+  if (!key) throw new Error('Falta tu clave de IA. Pulsa el botón «IA», arriba.');
+  if (pv === 'openai') {
+    /* los modelos nuevos rechazan max_tokens/temperature: se prueban variantes según el error */
+    const razona = /^(gpt-[56]|o\d)/.test(mod), o = {json, reasoning: razona, comp: razona, temp: !razona};
+    const mm = msgs.map(m => ({role: m.role, content: typeof m.content === 'string' ? m.content : m.content.map(p => p.t === 'text' ? {type: 'text', text: p.v} : {type: 'image_url', image_url: {url: p.data}})}));
+    for (let k = 0; k < 6; k++) {
+      const body = {model: mod, messages: mm};
+      if (o.json) body.response_format = {type: 'json_object'};
+      if (o.comp) body.max_completion_tokens = max * (o.reasoning ? 2 : 1); else body.max_tokens = max;
+      if (o.reasoning) body.reasoning_effort = 'low';
+      if (o.temp) body.temperature = 0.4;
+      const r = await conReintentos(() => fetch('https://api.openai.com/v1/chat/completions', {method: 'POST', headers: {'Content-Type': 'application/json', Authorization: 'Bearer ' + key}, body: JSON.stringify(body)}), pv);
+      if (r.ok) return (await r.json()).choices?.[0]?.message?.content || '';
+      const tx = await r.text();
+      if (r.status === 400) {
+        if (/reasoning_effort/i.test(tx) && o.reasoning) { o.reasoning = false; continue; }
+        if (/max_completion_tokens/i.test(tx) && o.comp) { o.comp = false; continue; }
+        if (/max_tokens/i.test(tx) && !o.comp) { o.comp = true; continue; }
+        if (/temperature/i.test(tx) && o.temp) { o.temp = false; continue; }
+        if (/response_format|json/i.test(tx) && o.json) { o.json = false; const u = mm.at(-1); if (typeof u.content === 'string') u.content += '\nResponde SOLO con JSON válido.'; else u.content.push({type: 'text', text: 'Responde SOLO con JSON válido.'}); continue; }
+      }
+      throw httpErr(r.status, tx, pv, mod);
+    }
+    throw new Error('OpenAI no responde ahora mismo.');
+  }
+  if (pv === 'gemini') {
+    const sys = sysDe(msgs), cont = agrupa(msgs, 'model').map(m => ({role: m.role, parts: m.parts.map(p => p.t === 'text' ? {text: p.v} : {inline_data: {mime_type: p.mime, data: p.data.split(',')[1]}})}));
+    const body = {contents: cont, generationConfig: {maxOutputTokens: max, temperature: 0.4}};
+    if (sys) body.systemInstruction = {parts: [{text: sys}]};
+    if (json) body.generationConfig.responseMimeType = 'application/json';
+    const r = await conReintentos(() => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(mod)}:generateContent`, {method: 'POST', headers: {'Content-Type': 'application/json', 'x-goog-api-key': key}, body: JSON.stringify(body)}), pv);
+    const tx = await r.text(); if (!r.ok) throw httpErr(r.status, tx, pv, mod);
+    const j = JSON.parse(tx), txt = (j.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
+    if (!txt && j.promptFeedback?.blockReason) throw new Error(`El proveedor ha bloqueado la respuesta (${j.promptFeedback.blockReason}).`);
+    return txt;
+  }
+  const sys = sysDe(msgs), mm = agrupa(msgs, 'assistant').map(m => ({role: m.role, content: m.parts.map(p => p.t === 'text' ? {type: 'text', text: p.v} : {type: 'image', source: {type: 'base64', media_type: p.mime, data: p.data.split(',')[1]}})}));
+  if (json) mm.at(-1).content.push({type: 'text', text: '\n\nResponde SOLO con un objeto JSON válido, sin texto alrededor.'});
+  const r = await conReintentos(() => fetch('https://api.anthropic.com/v1/messages', {method: 'POST', headers: {'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true'}, body: JSON.stringify({model: mod, max_tokens: max, system: sys, messages: mm})}), pv);
+  const tx = await r.text(); if (!r.ok) throw httpErr(r.status, tx, pv, mod);
+  return (JSON.parse(tx).content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+}
+async function llmJSON(msgs, o = {}) { for (let k = 0; k < 2; k++) { const j = parseJ(await llm(msgs, {...o, json: true})); if (j && typeof j === 'object') return j; } throw new Error('La IA no devolvió una respuesta con el formato esperado. Inténtalo de nuevo.'); }
+async function listaModelos(pv = getProv()) {
+  const key = getKey(pv); if (!key) throw new Error('Primero pega tu clave.'); let r;
+  try {
+    if (pv === 'openai') r = await fetch('https://api.openai.com/v1/models', {headers: {Authorization: 'Bearer ' + key}});
+    else if (pv === 'gemini') r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=100', {headers: {'x-goog-api-key': key}});
+    else r = await fetch('https://api.anthropic.com/v1/models?limit=100', {headers: {'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true'}});
+  } catch { throw new Error(`No hay conexión con ${PROV[pv].n}.`); }
+  const tx = await r.text(); if (!r.ok) throw httpErr(r.status, tx, pv, ''); const j = JSON.parse(tx);
+  if (pv === 'openai') return (j.data || []).map(m => m.id).filter(id => /^(gpt-|o\d|chatgpt-)/.test(id) && !/(audio|realtime|transcribe|tts|image|embedding|moderation|search|instruct|whisper|dall|davinci|babbage|codex|computer-use)/i.test(id)).sort();
+  if (pv === 'gemini') return (j.models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent')).map(m => m.name.replace(/^models\//, '')).sort();
+  return (j.data || []).map(m => m.id).sort();
+}
+
+/* ── verificación por código de lo que dice la IA, anonimización y Markdown seguro ──────────────────────────
+   Principio: la IA propone, el código comprueba. Nunca muestres como hecho una cita, una cifra o un recuento
+   que la IA afirme sin haberlo contrastado con el texto de origen. */
+
+/* texto normalizado con mapa a las posiciones originales */
+function normMap(s) {
+  let n = ''; const map = []; let sp = true;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (/[\p{L}\p{N}]/u.test(c)) { for (const ch of c) { n += ch; map.push(i); } sp = false; }
+    else if (!sp) { n += ' '; map.push(i); sp = true; }
+  }
+  return {n, map};
+}
+let _nm = null;
+const nmat = mat => { if (!_nm || _nm.src !== mat) _nm = {src: mat, ...normMap(mat)}; return _nm; };
+/* ¿aparece la cita (literal, ignorando mayúsculas, tildes y puntuación) en el material? */
+function localiza(mat, cita, minLen = 12) { const q = norm(cita); if (q.length < minLen) return null; const m = nmat(mat), i = m.n.indexOf(q); return i < 0 ? null : [m.map[i], m.map[Math.min(i + q.length - 1, m.map.length - 1)]]; }
+const esFiel = (mat, cita) => !!localiza(mat, cita);
+/* extractos del material alrededor de las citas (para dar contexto sin enviar todo) */
+function ventanas(mat, citas, rad = 700, tope = 4200) {
+  const r = citas.map(c => localiza(mat, c)).filter(Boolean).map(([a, b]) => [Math.max(0, a - rad), Math.min(mat.length, b + rad)]).sort((x, y) => x[0] - y[0]), m = [];
+  for (const v of r) { const l = m.at(-1); if (l && v[0] <= l[1]) l[1] = Math.max(l[1], v[1]); else m.push([...v]); }
+  const t = m.map(([a, b]) => mat.slice(a, b).trim()).join('\n[…]\n'); return t.length > tope ? t.slice(0, tope) : t;
+}
+/* cifras que la IA menciona y no están en el material (ignora números pequeños) */
+const numsDe = t => new Set((String(t).match(/\d+(?:[.,]\d+)?/g) || []).map(x => x.replace(',', '.')));
+function numerosNuevos(texto, mat) { const m = numsDe(mat); return [...numsDe(texto)].filter(x => !m.has(x) && parseFloat(x) > 12); }
+
+/* datos personales: se enmascaran antes de enviar nada a un proveedor externo */
+const PII = [['CORREO', /[\w.+-]+@[\w-]+\.[\w.-]+/g], ['ID', /\b\d{8}[A-HJ-NP-TV-Z]\b|\b[XYZ]\d{7}[A-Z]\b/gi], ['TELÉFONO', /(?:\+\d{2}\s?)?\b[6-9]\d{2}[\s.-]?\d{3}[\s.-]?\d{3}\b/g]];
+function scrub(txt, nombre = '') {
+  let n = 0, t = String(txt ?? ''); PII.forEach(([tag, rx]) => { t = t.replace(rx, () => { n++; return `[${tag}]`; }); });
+  const nm = new Set(norm(nombre).split(' ').filter(w => w.length >= 3));
+  t = t.replace(/[\p{L}][\p{L}'’-]*/gu, w => nm.has(norm(w)) ? (n++, '[PERSONA]') : w);
+  return {t, n};
+}
+const cuentaPII = txt => PII.reduce((n, [, rx]) => n + ((String(txt).match(rx) || []).length), 0);
+
+/* Markdown mínimo y seguro (escapa antes de formatear) */
+function md(s) {
+  const inl = x => esc(x).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/(^|[\s(])\*([^*\n]+)\*/g, '$1<i>$2</i>').replace(/`([^`]+)`/g, '<code>$1</code>');
+  const out = []; let lst = null; const cierra = () => { if (lst) { out.push(`</${lst}>`); lst = null; } };
+  for (const raw of String(s || '').split('\n')) {
+    const l = raw.trimEnd(); let m; if (!l.trim()) { cierra(); continue; }
+    if (m = l.match(/^#{1,4}\s+(.*)/)) { cierra(); out.push(`<h4>${inl(m[1])}</h4>`); continue; }
+    if (m = l.match(/^\s*[-*•]\s+(.*)/)) { if (lst !== 'ul') { cierra(); out.push('<ul>'); lst = 'ul'; } out.push(`<li>${inl(m[1])}</li>`); continue; }
+    if (m = l.match(/^\s*\d+[.)]\s+(.*)/)) { if (lst !== 'ol') { cierra(); out.push('<ol>'); lst = 'ol'; } out.push(`<li>${inl(m[1])}</li>`); continue; }
+    cierra(); out.push(`<p>${inl(l)}</p>`);
+  }
+  cierra(); return out.join('');
+}
+
+/* ── navegación Forja: barra superior, stepper, barra inferior, ventanas, ayuda y ajustes de IA ─────────────
+   La app define (en app.js; se leen al ejecutar, no al cargar el módulo) y llama a iniciaUI() al arrancar:
+     const STEPS  = ['Inicio', 'Paso 1', ...];                   // etiquetas del stepper (la actual se muestra con nombre)
+     const NAV    = [['Empezar',''], ['Siguiente: …','pista'], …]; // [texto del botón «siguiente», pista de la barra inferior] por pantalla
+     const RENDER = {0: pintaInicio, 1: pintaX, …};               // funciones que pintan cada pantalla al entrar
+     const GLOS   = [['Título','Texto'], …];                       // ayuda
+   Opcionales:  const CAN_NEXT = i => true|'mensaje';  // validación antes de avanzar
+                const HUBS = ['Glosario', 'Progreso'];  // secciones fuera del recorrido lineal: pantallas con data-step = STEPS.length + k.
+                // Al entrar en una sección el stepper muestra solo su nombre, la barra de progreso se vacía y «Atrás»/«Siguiente» vuelven al inicio. */
+let step = 0;
+const esHub = i => i >= STEPS.length;
+function buildStepper() {
+  if (esHub(step)) {
+    const nombre = (typeof HUBS !== 'undefined' && HUBS[step - STEPS.length]) || '';
+    $('stepper').innerHTML = `<button class="sdot" type="button" data-go="0" data-state="done"><span class="n">${ico('left')}</span><span class="lbl">Inicio</span></button><span class="sline on"></span><button class="sdot" type="button" data-state="now" aria-current="page"><span class="n">${ico(typeof LOGO_ICON === 'string' ? LOGO_ICON : 'bulb')}</span><span class="lbl">${esc(nombre)}</span></button>`;
+    $$('#stepper [data-go]').forEach(b => b.onclick = () => go(+b.dataset.go)); return;
+  }
+  $('stepper').innerHTML = STEPS.map((s, i) => `${i ? `<span class="sline${i <= step ? ' on' : ''}"></span>` : ''}<button class="sdot" type="button" data-go="${i}" data-state="${i < step ? 'done' : i === step ? 'now' : ''}" ${i === step ? 'aria-current="step"' : ''}><span class="n">${i < step ? ico('check') : i === 0 ? ico(typeof LOGO_ICON === 'string' ? LOGO_ICON : 'bulb') : i}</span><span class="lbl">${esc(s)}</span></button>`).join('');
+  $$('#stepper [data-go]').forEach(b => b.onclick = () => go(+b.dataset.go));
+}
+function updateNav() { const N = NAV[step] || ['Volver al inicio', '']; $('navBack').classList.toggle('hidden', step === 0 || esHub(step)); $('navNextTxt').textContent = N[0]; $('navHint').textContent = N[1] || ''; }
+function go(i) {
+  step = i; $$('.screen').forEach(s => s.classList.toggle('on', +s.dataset.step === i)); $('progBar').style.width = esHub(i) ? '0%' : (i / (STEPS.length - 1) * 100) + '%';
+  (RENDER[i] || (() => {}))(); buildStepper(); updateNav(); window.scrollTo({top: 0, behavior: 'instant'});
+}
+$('goHome').onclick = () => go(0);
+$('navBack').onclick = () => { if (step > 0) go(step - 1); };
+$('navNext').onclick = () => { if (esHub(step)) return go(0); const ok = typeof CAN_NEXT === 'function' ? CAN_NEXT(step) : true; if (ok !== true && ok) return toast(ok); go(step === STEPS.length - 1 ? 0 : step + 1); };
+
+/* ventanas modales (Escape y clic fuera cierran; data-close en el botón) */
+const _cierres = {};   // id de modal → función a ejecutar al cerrar
+$$('.modal').forEach(m => m.addEventListener('click', ev => { if (ev.target === m || ev.target.hasAttribute('data-close')) { m.classList.remove('on'); _cierres[m.id]?.(); } }));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $$('.modal.on').forEach(m => { m.classList.remove('on'); _cierres[m.id]?.(); }); });
+function cargaIA() { const pv = getProv(); $('selProv').value = pv; $('apiKey').value = getKey(pv); $('apiKey').placeholder = KPH[pv]; $('modelo').value = getMod(pv); let ml = []; try { ml = JSON.parse(localStorage.getItem(APP + '_models_' + pv) || '[]'); } catch {} $('modelos').innerHTML = [...new Set([PROV[pv].m, ...ml])].map(m => `<option value="${esc(m)}">`).join(''); }
+const KPH = {openai: 'sk-proj-…', gemini: 'AIza…', anthropic: 'sk-ant-…'};
+/* iniciaUI(): llámala UNA vez desde app.js, al final, justo antes de go(0). Enlaza la ayuda y los ajustes de IA.
+   (No se hace al cargar el módulo porque GLOS y el resto de constantes de la app aún no existen en ese momento.) */
+function iniciaUI() {
+  if ($('btnHelp')) { $('glos').innerHTML = (typeof GLOS !== 'undefined' ? GLOS : []).map(g => `<div><b>${esc(g[0])}</b><span>${esc(g[1])}</span></div>`).join(''); $('btnHelp').onclick = () => $('mHelp').classList.add('on'); }
+  if ($('btnIA')) {
+    $('btnIA').onclick = () => { cargaIA(); $('mIA').classList.add('on'); };
+    $('selProv').onchange = () => { localStorage.setItem(APP + '_prov', $('selProv').value); cargaIA(); };
+    $('apiKey').oninput = () => localStorage.setItem(PROV[getProv()].k, $('apiKey').value.trim());
+    $('modelo').oninput = () => localStorage.setItem(APP + '_model_' + getProv(), $('modelo').value.trim() || PROV[getProv()].m);
+    $('btnEye').onclick = () => { const k = $('apiKey'); k.type = k.type === 'password' ? 'text' : 'password'; };
+    $('btnModelos').onclick = async () => { const st = $('iaEstado'), pv = getProv(); st.textContent = '…'; try { const l = await listaModelos(pv); localStorage.setItem(APP + '_models_' + pv, JSON.stringify(l)); $('modelos').innerHTML = l.map(m => `<option value="${esc(m)}">`).join(''); st.textContent = `${l.length} modelos disponibles en tu clave; escribe o elige uno.`; } catch (e) { st.textContent = e.message; } };
+  }
+}
+/* ¿hay clave? si no, abre los ajustes de IA y avisa */
+function pideClave() { if (getKey()) return true; if ($('mIA')) { cargaIA(); $('mIA').classList.add('on'); } toast('Pega tu clave de IA para continuar'); return false; }
+
+/* ── Parámetros por especie (calibración didáctica, no cultivar-específica experimental) ── */
+const SPECIES = {
+  tomate: {
+    name: 'Tomate (Solanum lycopersicum)', group: 'Hortaliza',
+    Topt: 25, Tmin: 10, Tmax: 38, ECe50: 3.5, WsSens: 1.15, PAR50: 400, Amax: 1.0, gsMax: 0.35, biomassRate: 1.0
+  },
+  pimiento: {
+    name: 'Pimiento (Capsicum annuum)', group: 'Hortaliza',
+    Topt: 26, Tmin: 12, Tmax: 36, ECe50: 3.0, WsSens: 1.2, PAR50: 380, Amax: 0.95, gsMax: 0.32, biomassRate: 0.9
+  },
+  berenjena: {
+    name: 'Berenjena (Solanum melongena)', group: 'Hortaliza',
+    Topt: 27, Tmin: 14, Tmax: 36, ECe50: 3.2, WsSens: 1.1, PAR50: 400, Amax: 0.9, gsMax: 0.3, biomassRate: 0.85
+  },
+  pepino: {
+    name: 'Pepino (Cucumis sativus)', group: 'Hortaliza',
+    Topt: 24, Tmin: 15, Tmax: 35, ECe50: 2.5, WsSens: 1.3, PAR50: 350, Amax: 1.05, gsMax: 0.4, biomassRate: 1.15
+  },
+  calabacin: {
+    name: 'Calabacín (Cucurbita pepo)', group: 'Hortaliza',
+    Topt: 25, Tmin: 12, Tmax: 35, ECe50: 3.0, WsSens: 1.15, PAR50: 380, Amax: 0.95, gsMax: 0.36, biomassRate: 1.05
+  },
+  lechuga: {
+    name: 'Lechuga (Lactuca sativa)', group: 'Hortaliza',
+    Topt: 18, Tmin: 5, Tmax: 28, ECe50: 2.0, WsSens: 1.35, PAR50: 300, Amax: 0.85, gsMax: 0.4, biomassRate: 1.1
+  },
+  espinaca: {
+    name: 'Espinaca (Spinacia oleracea)', group: 'Hortaliza',
+    Topt: 16, Tmin: 2, Tmax: 26, ECe50: 3.5, WsSens: 1.2, PAR50: 280, Amax: 0.8, gsMax: 0.38, biomassRate: 0.95
+  },
+  cebolla: {
+    name: 'Cebolla (Allium cepa)', group: 'Hortaliza',
+    Topt: 20, Tmin: 6, Tmax: 30, ECe50: 2.8, WsSens: 1.05, PAR50: 350, Amax: 0.75, gsMax: 0.25, biomassRate: 0.7
+  },
+  fresa: {
+    name: 'Fresa (Fragaria × ananassa)', group: 'Hortaliza',
+    Topt: 20, Tmin: 5, Tmax: 30, ECe50: 2.0, WsSens: 1.25, PAR50: 350, Amax: 0.85, gsMax: 0.33, biomassRate: 0.8
+  },
+  melón: {
+    name: 'Melón (Cucumis melo)', group: 'Hortaliza',
+    Topt: 28, Tmin: 15, Tmax: 38, ECe50: 3.5, WsSens: 1.05, PAR50: 450, Amax: 1.0, gsMax: 0.34, biomassRate: 1.0
+  },
+  sandia: {
+    name: 'Sandía (Citrullus lanatus)', group: 'Hortaliza',
+    Topt: 30, Tmin: 16, Tmax: 40, ECe50: 3.0, WsSens: 1.0, PAR50: 500, Amax: 1.05, gsMax: 0.32, biomassRate: 1.1
+  },
+  olivo: {
+    name: 'Olivo (Olea europaea)', group: 'Leñoso mediterráneo',
+    Topt: 28, Tmin: 5, Tmax: 40, ECe50: 5.5, WsSens: 0.75, PAR50: 450, Amax: 0.7, gsMax: 0.22, biomassRate: 0.55
+  },
+  citrico: {
+    name: 'Cítrico (Citrus spp.)', group: 'Leñoso mediterráneo',
+    Topt: 27, Tmin: 12, Tmax: 38, ECe50: 2.5, WsSens: 1.1, PAR50: 420, Amax: 0.85, gsMax: 0.28, biomassRate: 0.7
+  },
+  vid: {
+    name: 'Vid (Vitis vinifera)', group: 'Leñoso mediterráneo',
+    Topt: 26, Tmin: 8, Tmax: 38, ECe50: 4.0, WsSens: 0.9, PAR50: 400, Amax: 0.8, gsMax: 0.26, biomassRate: 0.65
+  },
+  almendro: {
+    name: 'Almendro (Prunus dulcis)', group: 'Leñoso mediterráneo',
+    Topt: 25, Tmin: 6, Tmax: 38, ECe50: 3.5, WsSens: 0.95, PAR50: 430, Amax: 0.75, gsMax: 0.24, biomassRate: 0.6
+  },
+  granado: {
+    name: 'Granado (Punica granatum)', group: 'Leñoso mediterráneo',
+    Topt: 28, Tmin: 8, Tmax: 40, ECe50: 4.5, WsSens: 0.8, PAR50: 450, Amax: 0.72, gsMax: 0.23, biomassRate: 0.58
+  },
+  higuera: {
+    name: 'Higuera (Ficus carica)', group: 'Leñoso mediterráneo',
+    Topt: 27, Tmin: 7, Tmax: 39, ECe50: 4.0, WsSens: 0.85, PAR50: 420, Amax: 0.78, gsMax: 0.25, biomassRate: 0.62
+  },
+  aguacate: {
+    name: 'Aguacate (Persea americana)', group: 'Subtropical',
+    Topt: 24, Tmin: 10, Tmax: 33, ECe50: 2.0, WsSens: 1.2, PAR50: 400, Amax: 0.88, gsMax: 0.3, biomassRate: 0.75
+  },
+  mango: {
+    name: 'Mango (Mangifera indica)', group: 'Subtropical',
+    Topt: 30, Tmin: 12, Tmax: 40, ECe50: 2.5, WsSens: 1.0, PAR50: 500, Amax: 0.9, gsMax: 0.27, biomassRate: 0.7
+  },
+  trigo: {
+    name: 'Trigo (Triticum aestivum)', group: 'Cereal / extensivo',
+    Topt: 20, Tmin: 3, Tmax: 32, ECe50: 6.0, WsSens: 1.0, PAR50: 350, Amax: 0.9, gsMax: 0.3, biomassRate: 1.05
+  },
+  cebada: {
+    name: 'Cebada (Hordeum vulgare)', group: 'Cereal / extensivo',
+    Topt: 18, Tmin: 2, Tmax: 30, ECe50: 7.0, WsSens: 0.95, PAR50: 340, Amax: 0.88, gsMax: 0.28, biomassRate: 1.0
+  },
+  maiz: {
+    name: 'Maíz (Zea mays)', group: 'Cereal / extensivo',
+    Topt: 28, Tmin: 10, Tmax: 38, ECe50: 3.5, WsSens: 1.15, PAR50: 500, Amax: 1.15, gsMax: 0.35, biomassRate: 1.25
+  },
+  arroz: {
+    name: 'Arroz (Oryza sativa)', group: 'Cereal / extensivo',
+    Topt: 28, Tmin: 15, Tmax: 36, ECe50: 3.0, WsSens: 1.4, PAR50: 450, Amax: 1.0, gsMax: 0.38, biomassRate: 1.1
+  },
+  girasol: {
+    name: 'Girasol (Helianthus annuus)', group: 'Cereal / extensivo',
+    Topt: 25, Tmin: 8, Tmax: 36, ECe50: 4.5, WsSens: 0.9, PAR50: 500, Amax: 1.05, gsMax: 0.33, biomassRate: 1.15
+  },
+  alfalfa: {
+    name: 'Alfalfa (Medicago sativa)', group: 'Forrajera',
+    Topt: 22, Tmin: 5, Tmax: 35, ECe50: 5.0, WsSens: 0.85, PAR50: 400, Amax: 0.95, gsMax: 0.35, biomassRate: 1.2
+  },
+  algodon: {
+    name: 'Algodón (Gossypium hirsutum)', group: 'Industrial',
+    Topt: 30, Tmin: 15, Tmax: 40, ECe50: 7.0, WsSens: 0.9, PAR50: 500, Amax: 0.95, gsMax: 0.3, biomassRate: 0.9
+  }
+};
+
+/* ══ Núcleo del simulador: lógica pura, sin DOM (se puede probar en Node). El modelo es el mismo de v1.x:
+      factores multiplicativos 0–1 calibrados por especie. Solo se añaden utilidades de lectura (resumen, factor limitante). ══ */
+const DEF_ENV = {species: 'tomate', days: 30, irr: 0, sal: 1, temp: 24, par: 900, nut: 100};
+
+/* valores crudos de los controles → parámetros del modelo */
+function envDe(r) {
+  return {
+    species: SPECIES[r.species] ? r.species : 'tomate',
+    days: Math.max(7, Math.min(120, +r.days || 30)),
+    irrDef: (+r.irr || 0) / 100, sal: +r.sal || 0, temp: +r.temp, par: +r.par, nut: (+r.nut || 0) / 100
+  };
+}
+
+/* Factores de reducción 0–1 */
+function fTemp(T, sp) {
+  if (T <= sp.Tmin || T >= sp.Tmax) return 0.05;
+  if (T === sp.Topt) return 1;
+  if (T < sp.Topt) return Math.max(0.05, (T - sp.Tmin) / (sp.Topt - sp.Tmin));
+  return Math.max(0.05, (sp.Tmax - T) / (sp.Tmax - sp.Topt));
+}
+function fWater(def, sp) {
+  const x = Math.min(1, Math.max(0, def * sp.WsSens));
+  return Math.max(0.08, Math.exp(-2.2 * x));
+}
+function fSalt(ce, sp) {
+  if (ce <= 1) return 1;
+  const slope = 0.5 / Math.max(0.5, sp.ECe50 - 1);
+  return Math.max(0.08, 1 - slope * (ce - 1));
+}
+function fLight(par, sp) {
+  return (par / (par + sp.PAR50)) * (sp.Amax / (0.5 + sp.Amax * 0.5));
+}
+function fNut(n) {
+  if (n >= 1) return Math.min(1.05, 0.95 + 0.1 * Math.min(n, 1.2));
+  return Math.max(0.15, Math.pow(n, 0.7));
+}
+
+function simulate(env) {
+  const sp = SPECIES[env.species];
+  const series = [];
+  let biomass = 1;
+  const ft = fTemp(env.temp, sp), fw = fWater(env.irrDef, sp), fs = fSalt(env.sal, sp), fl = fLight(env.par, sp), fn = fNut(env.nut);
+  for (let d = 1; d <= env.days; d++) {
+    const dayFactor = 0.92 + 0.08 * Math.sin((d / env.days) * Math.PI * 2);
+    const photo = Math.min(1, sp.Amax * fl * ft * fw * fs * fn * dayFactor);
+    const gs = Math.min(1, (sp.gsMax / 0.35) * fw * Math.sqrt(fs) * (0.7 + 0.3 * ft) * dayFactor);
+    const maint = 0.12 + 0.15 * (1 - fw) + 0.08 * (1 - fs);
+    const dBio = sp.biomassRate * (photo * 0.55 - maint * 0.25);
+    biomass = Math.max(0.2, biomass + dBio * 0.35);
+    const stressIdx = 1 - (fw * fs * ft * Math.min(fn, 1));
+    series.push({day: d, photo: +photo.toFixed(4), gs: +gs.toFixed(4), biomass: +biomass.toFixed(4), stress: +stressIdx.toFixed(4), factors: {ft, fw, fs, fl, fn}});
+  }
+  return {series, sp, env, factors: {ft, fw, fs, fl, fn}};
+}
+
+/* ── utilidades de lectura ── */
+const mediaDe = (ser, k) => ser.reduce((s, r) => s + r[k], 0) / ser.length;
+function resumenDe(res) {
+  const last = res.series[res.series.length - 1];
+  return {photo: mediaDe(res.series, 'photo'), gs: mediaDe(res.series, 'gs'), biomass: last.biomass, stress: last.stress};
+}
+const nivelEstres = x => x < 0.25 ? 'bajo' : x < 0.5 ? 'moderado' : x < 0.7 ? 'alto' : 'severo';
+const FACTORES = [['ft', 'Temperatura'], ['fw', 'Agua'], ['fs', 'Salinidad'], ['fl', 'Luz'], ['fn', 'Nutrición']];
+/* factor con el valor más bajo (el que más limita); si todos son ≥ 0,95 no hay factor limitante apreciable */
+function limitante(f) {
+  let m = FACTORES[0];
+  FACTORES.forEach(x => { if (f[x[0]] < f[m[0]]) m = x; });
+  return f[m[0]] >= 0.95 ? null : {k: m[0], nombre: m[1], valor: f[m[0]]};
+}
+const nombreCorto = sp => sp.name.split('(')[0].trim();
+const etiquetaEnv = e => `${nombreCorto(SPECIES[e.species])} · déficit ${(e.irrDef * 100).toFixed(0)} % · CE ${e.sal.toFixed(1)} · ${e.temp} °C`;
+
+/* ══ SimuPlanta AI · interfaz Forja. El modelo vive en nucleo.js y los datos de especies en datos.js ══ */
+const STEPS = ['Inicio', 'Laboratorio', 'Comparar', 'Informe'];
+const NAV = [['Empezar', 'Prueba el ejemplo: no necesita clave.'], ['Siguiente: comparar', 'Ajusta el ambiente y guarda escenarios.'], ['Siguiente: informe', 'Compara los escenarios guardados.'], ['Volver al inicio', 'Descarga el informe o los datos.']];
+const RENDER = {0: pintaInicio, 1: pintaLab, 2: pintaCompara, 3: pintaInforme};
+const GLOS = [
+  ['¿Qué hace?', 'Simula día a día cómo responde un cultivo a su ambiente: fotosíntesis relativa, conductancia estomática, biomasa acumulada y estrés integrado.'],
+  ['Cómo se calcula', 'Cinco factores entre 0 y 1 (temperatura, agua, salinidad, luz y nutrición) se multiplican con los parámetros de cada especie. Es un modelo didáctico, no un modelo de proceso.'],
+  ['Factor limitante', 'El factor con el valor más bajo: es el que más reduce la fotosíntesis en ese escenario. Si todos superan 0,95 no hay limitación apreciable.'],
+  ['Estrés integrado', '1 − (agua × salinidad × temperatura × nutrición). Va de 0 (nulo) a 100 % (máximo). Se clasifica en bajo, moderado, alto o severo.'],
+  ['Escenarios', 'Guarda variantes del laboratorio y compáralas. Se conservan en este navegador (máximo 8).'],
+  ['Interpretación con IA', 'Opcional. Solo salen hacia tu proveedor los parámetros del escenario y sus resultados. El código marca las cifras que la IA cita y no están en el escenario.'],
+  ['Límites', 'No sustituye a DSSAT, APSIM ni a ensayos experimentales. Las especies se calibran de forma didáctica, no por cultivar.']
+];
+const MAX_ESC = 8;
+let S = {env: {...DEF_ENV}, scenarios: [], ia: null};
+let lastRes = null, pane = 'evo';
+
+/* ── portada ── */
+function pintaInicio() { $('inicioProj').innerHTML = S.scenarios.length ? `Tienes <b>${S.scenarios.length}</b> escenario${S.scenarios.length > 1 ? 's' : ''} guardado${S.scenarios.length > 1 ? 's' : ''} en este navegador. <button class="btn btn-ghost btn-sm" id="btnCont" type="button">Compararlos</button>` : ''; }
+$('btnStart').onclick = () => go(1);
+$('btnEjemplo').onclick = () => {
+  S.env = {species: 'tomate', days: 30, irr: 55, sal: 5, temp: 31, par: 900, nut: 100};
+  S.scenarios = [
+    {id: uid('e'), env: {species: 'tomate', days: 30, irr: 0, sal: 1, temp: 25, par: 900, nut: 100}},
+    {id: uid('e'), env: {...S.env}},
+    {id: uid('e'), env: {species: 'tomate', days: 30, irr: 20, sal: 2, temp: 27, par: 900, nut: 100}}
+  ];
+  S.ia = null; guarda(); go(2); toast('Ejemplo de demostración: tomate con y sin estrés. No usa la IA.');
+};
+document.addEventListener('click', e => { if (e.target.id === 'btnCont') go(2); });
+
+/* ── laboratorio ── */
+const CTRL = ['species', 'days', 'irrDef', 'sal', 'temp', 'par', 'nut'];
+const KEY = {species: 'species', days: 'days', irrDef: 'irr', sal: 'sal', temp: 'temp', par: 'par', nut: 'nut'};
+function iniciaSpecies() {
+  const groups = {};
+  Object.entries(SPECIES).forEach(([k, v]) => { (groups[v.group || 'Otros'] = groups[v.group || 'Otros'] || []).push([k, v]); });
+  $('species').innerHTML = Object.entries(groups).map(([g, it]) => `<optgroup label="${esc(g)}">${it.map(([k, v]) => `<option value="${esc(k)}">${esc(v.name)}</option>`).join('')}</optgroup>`).join('');
+}
+function etiquetas() {
+  const e = S.env;
+  $('vIrr').value = e.irr + ' %'; $('vSal').value = (+e.sal).toFixed(1) + ' dS/m'; $('vTemp').value = e.temp + ' °C'; $('vPar').value = e.par + ' µmol'; $('vNut').value = e.nut + ' %';
+}
+function pintaLab() {
+  const e = S.env;
+  CTRL.forEach(id => { $(id).value = e[KEY[id]]; });
+  etiquetas(); pintaPane(); simula();
+}
+CTRL.forEach(id => {
+  $(id).addEventListener('input', () => {
+    const v = $(id).value;
+    S.env[KEY[id]] = id === 'species' ? v : v === '' ? '' : +v;
+    etiquetas(); simula(); guarda();
+  });
+});
+$('days').addEventListener('change', () => { const d = Math.max(7, Math.min(120, +$('days').value || 30)); $('days').value = d; S.env.days = d; simula(); guarda(); });
+
+function simula() {
+  const env = envDe(S.env); lastRes = simulate(env);
+  pintaKpis(lastRes); pintaFactores(lastRes); dibuja(lastRes.series); pintaTabla(lastRes.series);
+  $('saveInfo').textContent = S.scenarios.length ? `${S.scenarios.length} de ${MAX_ESC} escenarios guardados.` : 'Aún no has guardado ningún escenario.';
+}
+function pintaKpis(res) {
+  const r = resumenDe(res), alto = r.stress > 0.45;
+  $('kpis').innerHTML = `
+    <div class="fa-kpi" style="--c:#0E7C6B"><span>Fotosíntesis media</span><b>${(r.photo * 100).toFixed(0)}%</b><small>relativa al potencial</small></div>
+    <div class="fa-kpi" style="--c:#1F6FB2"><span>Conductancia estomática</span><b>${(r.gs * 100).toFixed(0)}%</b><small>relativa</small></div>
+    <div class="fa-kpi" style="--c:#C98200"><span>Biomasa final</span><b>${r.biomass.toFixed(2)}</b><small>índice (día 0 = 1)</small></div>
+    <div class="fa-kpi${alto ? ' alto' : ''}" style="--c:#E4572E"><span>Estrés integrado</span><b>${(r.stress * 100).toFixed(0)}%</b><small>${nivelEstres(r.stress)} · 0 = nulo, 100 = máximo</small></div>`;
+}
+function pintaFactores(res) {
+  const lim = limitante(res.factors);
+  $('factores').innerHTML = `<div class="fa-fac">${FACTORES.map(([k, n]) => {
+    const v = res.factors[k], w = Math.max(0, Math.min(1, v)) * 100, c = v >= 0.75 ? '#0E7C6B' : v >= 0.45 ? '#C98200' : '#E4572E', es = lim && lim.k === k;
+    return `<div class="fa-fr${es ? ' lim' : ''}"><span class="fa-fn">${n}${es ? ' <i>limitante</i>' : ''}</span><span class="fa-fb" role="img" aria-label="${n}: ${v.toFixed(2)}"><span style="width:${w.toFixed(1)}%;background:${c}"></span></span><b>${v.toFixed(2)}</b></div>`;
+  }).join('')}</div><p class="help">${lim ? `El factor que más limita es <b>${lim.nombre.toLowerCase()}</b> (${lim.valor.toFixed(2)}).` : 'Ningún factor limita de forma apreciable: todos están por encima de 0,95.'}</p>`;
+}
+
+/* gráfico: canvas nítido (devicePixelRatio) y adaptado al ancho; se repinta al entrar en la pantalla y al cambiar el tamaño */
+function dibuja(series) {
+  const cv = $('chart'), wrap = $('chartWrap'), W = wrap.clientWidth;
+  if (!W || !series.length) return;
+  const H = Math.round(Math.max(230, Math.min(340, W * 0.44))), dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const LEG = [['#0E7C6B', 'Fotosíntesis rel.'], ['#1F6FB2', 'Conductancia gs'], ['#C98200', 'Biomasa (índice)']];
+  ctx.font = '600 12px "Instrument Sans", system-ui, sans-serif';
+  const legPos = []; let lx0 = 40, ly0 = 16;
+  LEG.forEach(([c, t]) => { const wt = ctx.measureText(t).width + 17; if (lx0 + wt > W - 8 && lx0 > 40) { lx0 = 40; ly0 += 18; } legPos.push([c, t, lx0, ly0]); lx0 += wt + 21; });
+  const pad = {l: 40, r: 40, t: ly0 + 18, b: 28}, pw = W - pad.l - pad.r, ph = H - pad.t - pad.b, n = series.length;
+  const maxBio = Math.max(...series.map(s => s.biomass), 1.5);
+  const x = i => pad.l + (i / (n - 1 || 1)) * pw, y01 = v => pad.t + ph * (1 - v), yB = v => pad.t + ph * (1 - v / maxBio);
+  ctx.font = '11px "JetBrains Mono", ui-monospace, monospace'; ctx.lineWidth = 1;
+  for (let g = 0; g <= 4; g++) {
+    const yy = pad.t + ph * g / 4; ctx.strokeStyle = '#E8EEF4'; ctx.beginPath(); ctx.moveTo(pad.l, yy); ctx.lineTo(W - pad.r, yy); ctx.stroke();
+    ctx.fillStyle = '#5D7691'; ctx.textAlign = 'right'; ctx.fillText(Math.round((1 - g / 4) * 100) + '%', pad.l - 6, yy + 4);
+    ctx.fillStyle = '#C98200'; ctx.textAlign = 'left'; ctx.fillText(((1 - g / 4) * maxBio).toFixed(1), W - pad.r + 6, yy + 4);
+  }
+  const linea = (f, c, w) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineJoin = 'round'; ctx.beginPath(); series.forEach((s, i) => { const px = x(i), py = f(s); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }); ctx.stroke(); };
+  linea(s => y01(s.photo), '#0E7C6B', 2.6); linea(s => y01(s.gs), '#1F6FB2', 2.2); linea(s => yB(s.biomass), '#C98200', 2.6);
+  ctx.textAlign = 'left'; ctx.font = '600 12px "Instrument Sans", system-ui, sans-serif';
+  legPos.forEach(([c, t, lx, ly]) => { ctx.fillStyle = c; ctx.fillRect(lx, ly - 6, 12, 4); ctx.fillStyle = '#0F2237'; ctx.fillText(t, lx + 17, ly); });
+  ctx.fillStyle = '#5D7691'; ctx.font = '11px "JetBrains Mono", ui-monospace, monospace';
+  const ticks = [0, Math.floor((n - 1) / 2), n - 1];
+  ticks.forEach((i, k) => { ctx.textAlign = k === 0 ? 'left' : k === 2 ? 'right' : 'center'; ctx.fillText('día ' + series[i].day, x(i), H - 8); });
+  const r = resumenDe(lastRes);
+  cv.setAttribute('aria-label', `Evolución durante ${n} días de ${nombreCorto(lastRes.sp)}. Fotosíntesis media ${(r.photo * 100).toFixed(0)} %, conductancia media ${(r.gs * 100).toFixed(0)} %, biomasa final ${r.biomass.toFixed(2)}, estrés final ${(r.stress * 100).toFixed(0)} %.`);
+}
+function pintaTabla(series) {
+  const step = series.length > 40 ? 2 : 1; let rows = '';
+  for (let i = 0; i < series.length; i += step) { const s = series[i]; rows += `<tr><td>${s.day}</td><td>${(s.photo * 100).toFixed(1)}</td><td>${(s.gs * 100).toFixed(1)}</td><td>${s.biomass.toFixed(3)}</td><td>${(s.stress * 100).toFixed(1)}</td></tr>`; }
+  $('tablaDia').innerHTML = `<table><thead><tr><th>Día</th><th>Foto. %</th><th>gs %</th><th>Biomasa</th><th>Estrés %</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function pintaPane() {
+  $('pane-evo').hidden = pane !== 'evo'; $('pane-tab').hidden = pane !== 'tab';
+  $('tabEvo').setAttribute('aria-pressed', pane === 'evo'); $('tabTab').setAttribute('aria-pressed', pane === 'tab');
+  if (pane === 'evo' && lastRes) dibuja(lastRes.series);
+}
+document.querySelectorAll('.fa-tabs button').forEach(b => b.onclick = () => { pane = b.dataset.tab; pintaPane(); });
+let _rz; window.addEventListener('resize', () => { clearTimeout(_rz); _rz = setTimeout(() => { if (step === 1 && lastRes && pane === 'evo') dibuja(lastRes.series); }, 120); });
+
+$('btnOpt').onclick = () => {
+  Object.assign(S.env, {irr: 0, sal: 1, temp: SPECIES[S.env.species].Topt, par: 900, nut: 100});
+  CTRL.forEach(id => { $(id).value = S.env[KEY[id]]; }); etiquetas(); simula(); guarda(); toast('Valores óptimos para ' + nombreCorto(SPECIES[S.env.species]));
+};
+$('btnSave').onclick = () => {
+  if (S.scenarios.length >= MAX_ESC) return toast(`Ya tienes ${MAX_ESC} escenarios guardados. Quita alguno en «Comparar» para guardar otro.`, 6000);
+  S.scenarios.push({id: uid('e'), env: {...S.env}}); guarda(); simula(); toast(`Escenario #${S.scenarios.length} guardado`);
+};
+
+/* ── comparar ── */
+function datosEsc(s) { const env = envDe(s.env), res = simulate(env), r = resumenDe(res); return {env, res, r, lim: limitante(res.factors)}; }
+function pintaCompara() {
+  const el = $('cmpBody');
+  if (!S.scenarios.length) { el.innerHTML = `<div class="card"><p class="empty">Aún no has guardado ningún escenario. Ajusta el ambiente en el laboratorio y pulsa «Guardar escenario».</p><div class="actions"><button class="btn btn-primary" id="btnALab" type="button"><svg class="i"><use href="#i-sliders"/></svg>Ir al laboratorio</button></div></div>`; return; }
+  const D = S.scenarios.map(datosEsc), maxB = Math.max(...D.map(d => d.r.biomass), 1.5);
+  const mejor = D.reduce((m, d, i) => d.r.biomass > D[m].r.biomass ? i : m, 0), menos = D.reduce((m, d, i) => d.r.stress < D[m].r.stress ? i : m, 0);
+  el.innerHTML = `<div class="card"><h3>Resultados</h3>
+    <div class="table-wrap"><table><thead><tr><th>#</th><th>Escenario</th><th>Factor limitante</th><th>Foto. media %</th><th>Biomasa final</th><th>Estrés %</th><th></th></tr></thead><tbody>
+    ${D.map((d, i) => `<tr><td>${i + 1}</td><td>${esc(etiquetaEnv(d.env))}<br><small class="muted">PAR ${d.env.par} · nutrición ${(d.env.nut * 100).toFixed(0)} % · ${d.env.days} días</small></td><td>${d.lim ? esc(d.lim.nombre) + ' (' + d.lim.valor.toFixed(2) + ')' : '<span class="fa-chip ok">ninguno</span>'}</td><td>${(d.r.photo * 100).toFixed(1)}</td><td>${d.r.biomass.toFixed(2)}${i === mejor && D.length > 1 ? ' <span class="fa-chip ok">mayor</span>' : ''}</td><td>${(d.r.stress * 100).toFixed(0)}${i === menos && D.length > 1 ? ' <span class="fa-chip ok">menor</span>' : ''}</td>
+      <td class="fa-acc"><button class="btn btn-ghost btn-sm" data-act="carga" data-i="${i}" type="button" aria-label="Cargar el escenario ${i + 1} en el laboratorio">Cargar</button><button class="btn btn-ghost btn-sm" data-act="quita" data-i="${i}" type="button" aria-label="Quitar el escenario ${i + 1}">${ico('x')}</button></td></tr>`).join('')}
+    </tbody></table></div></div>
+  <div class="card"><h3>Biomasa final y estrés</h3><p class="sub">Barras de biomasa (índice, escala común) y de estrés integrado (0–100 %).</p>
+    <div class="fa-cmp">${D.map((d, i) => `<div class="fa-cr"><span class="fa-cn"><b>#${i + 1}</b> ${esc(etiquetaEnv(d.env))}</span><span class="fa-cb" role="img" aria-label="Escenario ${i + 1}: biomasa ${d.r.biomass.toFixed(2)}, estrés ${(d.r.stress * 100).toFixed(0)} %"><span class="b" style="width:${(d.r.biomass / maxB * 100).toFixed(1)}%"></span><span class="s" style="width:${(d.r.stress * 100).toFixed(1)}%"></span></span><b>${d.r.biomass.toFixed(2)} · ${(d.r.stress * 100).toFixed(0)}%</b></div>`).join('')}</div>
+    <p class="fa-leg"><i style="background:#C98200"></i>Biomasa <i style="background:#E4572E"></i>Estrés</p></div>
+  <div class="actions"><button class="btn btn-ghost" id="btnALab" type="button"><svg class="i"><use href="#i-sliders"/></svg>Volver al laboratorio</button></div>`;
+}
+$('cmpBody').addEventListener('click', e => {
+  if (e.target.closest('#btnALab')) return go(1);
+  const b = e.target.closest('[data-act]'); if (!b) return; const i = +b.dataset.i;
+  if (b.dataset.act === 'quita') { S.scenarios.splice(i, 1); guarda(); pintaCompara(); }
+  if (b.dataset.act === 'carga') { S.env = {...S.scenarios[i].env}; guarda(); go(1); toast(`Escenario #${i + 1} cargado en el laboratorio`); }
+});
+
+/* ── informe ── */
+function hechos(res) {
+  const e = res.env, r = resumenDe(res), f = res.factors, lim = limitante(f);
+  return `Especie: ${res.sp.name}. Días: ${e.days}. Déficit de riego ${(e.irrDef * 100).toFixed(0)} %, CE ${e.sal.toFixed(1)} dS/m, temperatura ${e.temp} °C, PAR ${e.par}, nutrición ${(e.nut * 100).toFixed(0)} %. ` +
+    `Fotosíntesis media ${(r.photo * 100).toFixed(0)} %, conductancia media ${(r.gs * 100).toFixed(0)} %, biomasa final ${r.biomass.toFixed(2)}, estrés integrado ${(r.stress * 100).toFixed(0)} % (${nivelEstres(r.stress)}). ` +
+    `Factores 0–1: temperatura ${f.ft.toFixed(2)}, agua ${f.fw.toFixed(2)}, salinidad ${f.fs.toFixed(2)}, luz ${f.fl.toFixed(2)}, nutrición ${f.fn.toFixed(2)}. ` + (lim ? `Factor limitante: ${lim.nombre.toLowerCase()}.` : 'Sin factor limitante apreciable.');
+}
+function pintaInforme() {
+  const res = simulate(envDe(S.env)), e = res.env, r = resumenDe(res), f = res.factors, lim = limitante(f);
+  $('informe').innerHTML = `<h3>Informe de simulación</h3>
+    <p><b>Cultivo:</b> ${esc(res.sp.name)} <span class="fa-chip">${esc(res.sp.group)}</span></p>
+    <p><b>Horizonte:</b> ${e.days} días</p>
+    <p><b>Ambiente:</b> déficit de riego ${(e.irrDef * 100).toFixed(0)} % · CE ${e.sal.toFixed(1)} dS/m · ${e.temp} °C · PAR ${e.par} · nutrición ${(e.nut * 100).toFixed(0)} %</p>
+    <div class="table-wrap"><table><thead><tr>${FACTORES.map(x => `<th>${x[1]}</th>`).join('')}</tr></thead><tbody><tr>${FACTORES.map(x => `<td>${f[x[0]].toFixed(3)}</td>`).join('')}</tr></tbody></table></div>
+    <p style="margin-top:12px"><b>Resultado:</b> biomasa final <b>${r.biomass.toFixed(2)}</b> · estrés integrado <b>${(r.stress * 100).toFixed(0)} %</b> (${nivelEstres(r.stress)}). ${lim ? `Factor limitante: <b>${lim.nombre.toLowerCase()}</b> (${lim.valor.toFixed(2)}).` : 'No hay factor limitante apreciable.'}</p>
+    <div class="okbox"><b>Uso docente.</b> Pide al alumnado que justifique qué factor limita más la fotosíntesis en este escenario y que proponga una intervención (riego, lavado de sales, sombreo, etc.), y que compruebe su propuesta en el laboratorio.</div>`;
+}
+function pintaIAOut() {
+  const a = S.ia; if (!a) { $('iaOut').innerHTML = ''; return; }
+  $('iaOut').innerHTML = `<div class="fa-ia"><p class="fa-iah"><span class="fa-chip aviso">Generado por IA</span> <small class="muted">${esc(a.prov)} · ${esc(a.modelo)}</small></p>${a.texto.split(/\n{2,}/).map(p => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join('')}</div>` +
+    (a.nuevas.length ? `<div class="aviso"><b>Revisa estas cifras:</b> la IA menciona ${a.nuevas.map(esc).join(', ')}, que no figuran en el escenario. Pueden ser inventadas o derivadas; compruébalas antes de usarlas.</div>` : `<p class="help">✓ Las cifras que cita la IA figuran en el escenario.</p>`);
+}
+function pintaInforme_() { pintaInforme(); pintaIAOut(); }
+const PROMPT = h => `Eres fisiólogo vegetal. Interpreta en español (máximo 180 palabras) este escenario de cultivo para alumnado universitario. Usa solo las cifras que aparecen en los datos; no inventes otras. Indica el factor más limitante y una sugerencia práctica, y aclara que es un modelo didáctico.\n\nDATOS: ${h}`;
+let busy = false;
+$('btnIAint').onclick = async () => {
+  if (busy) return; if (!pideClave()) return;
+  const res = simulate(envDe(S.env)), h = hechos(res); busy = true; $('btnIAint').disabled = true; $('iaOut').innerHTML = '<p class="help"><span class="spin"></span> Interpretando…</p>';
+  try {
+    const tx = String(await llm([{role: 'system', content: 'Eres un asistente riguroso y conciso.'}, {role: 'user', content: PROMPT(h)}], {max: 700})).trim();
+    if (!tx) throw new Error('La IA no ha devuelto texto. Inténtalo de nuevo.');
+    S.ia = {texto: tx, nuevas: numerosNuevos(tx, h), prov: PROV[getProv()].n, modelo: getMod(), hechos: h};
+    await guardaYa(); pintaIAOut();
+  } catch (e) { $('iaOut').innerHTML = `<div class="aviso">${esc(e.message)}</div>`; toast(e.message, 7000); }
+  finally { busy = false; $('btnIAint').disabled = false; }
+};
+RENDER[3] = pintaInforme_;
+
+/* ── descargas ── */
+const num = (v, d = 4) => String(+(+v).toFixed(d)).replace('.', ',');
+const csvq = v => { v = String(v ?? ''); return /[;"\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+const csvDe = (cab, filas) => '\ufeff' + [cab, ...filas].map(f => f.map(csvq).join(';')).join('\r\n');
+$('btnCsv').onclick = () => { const res = simulate(envDe(S.env)); dl('simuplanta_serie.csv', csvDe(['dia', 'fotosintesis_rel', 'conductancia_rel', 'indice_biomasa', 'indice_estres'], res.series.map(s => [s.day, num(s.photo), num(s.gs), num(s.biomass), num(s.stress)])), 'text/csv;charset=utf-8'); };
+$('btnCsvEsc').onclick = () => {
+  if (!S.scenarios.length) return toast('Aún no hay escenarios guardados');
+  dl('simuplanta_escenarios.csv', csvDe(['n', 'especie', 'dias', 'deficit_riego_pct', 'ce_dSm', 'temperatura_C', 'par', 'nutricion_pct', 'factor_limitante', 'fotosintesis_media', 'biomasa_final', 'estres_final'],
+    S.scenarios.map((s, i) => { const d = datosEsc(s), e = d.env; return [i + 1, d.res.sp.name, e.days, num(e.irrDef * 100, 0), num(e.sal, 1), e.temp, e.par, num(e.nut * 100, 0), d.lim ? d.lim.nombre : 'ninguno', num(d.r.photo), num(d.r.biomass), num(d.r.stress)]; })), 'text/csv;charset=utf-8');
+};
+$('btnInf').onclick = () => {
+  const res = simulate(envDe(S.env)), e = res.env, r = resumenDe(res), lim = limitante(res.factors), fecha = new Date().toISOString().slice(0, 10);
+  const esc2 = S.scenarios.map((s, i) => { const d = datosEsc(s); return `<tr><td>${i + 1}</td><td>${esc(etiquetaEnv(d.env))}</td><td>${d.lim ? esc(d.lim.nombre) : 'ninguno'}</td><td>${(d.r.photo * 100).toFixed(1)}</td><td>${d.r.biomass.toFixed(2)}</td><td>${(d.r.stress * 100).toFixed(0)}</td></tr>`; }).join('');
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Informe SimuPlanta AI</title><style>body{font-family:system-ui,sans-serif;max-width:760px;margin:36px auto;padding:0 16px;line-height:1.55;color:#0F2237}h1{font-size:26px;margin:0}h2{font-size:18px;margin:26px 0 8px;border-bottom:2px solid #E4572E;padding-bottom:4px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #D8E0E9;padding:6px 9px;font-size:13.5px;text-align:left}th{background:#F3F6FA}.n{font-size:12.5px;color:#5D7691}.ia{background:#FFF8E6;border:1px solid #E9C46A;border-radius:8px;padding:4px 14px}</style></head><body>
+<h1>SimuPlanta AI · Informe</h1><p class="n">${fecha} · modelo didáctico de la Universidad Miguel Hernández de Elche</p>
+<h2>Escenario</h2><p><b>${esc(res.sp.name)}</b> · ${e.days} días</p><p>Déficit de riego ${(e.irrDef * 100).toFixed(0)} % · CE ${e.sal.toFixed(1)} dS/m · ${e.temp} °C · PAR ${e.par} · nutrición ${(e.nut * 100).toFixed(0)} %</p>
+<h2>Resultado</h2><p>Fotosíntesis media ${(r.photo * 100).toFixed(0)} % · conductancia media ${(r.gs * 100).toFixed(0)} % · biomasa final <b>${r.biomass.toFixed(2)}</b> · estrés integrado <b>${(r.stress * 100).toFixed(0)} %</b> (${nivelEstres(r.stress)}). ${lim ? 'Factor limitante: <b>' + esc(lim.nombre.toLowerCase()) + '</b> (' + lim.valor.toFixed(2) + ').' : 'Sin factor limitante apreciable.'}</p>
+<table><thead><tr>${FACTORES.map(x => `<th>${x[1]}</th>`).join('')}</tr></thead><tbody><tr>${FACTORES.map(x => `<td>${res.factors[x[0]].toFixed(3)}</td>`).join('')}</tr></tbody></table>
+${esc2 ? `<h2>Escenarios guardados</h2><table><thead><tr><th>#</th><th>Escenario</th><th>Factor limitante</th><th>Foto. media %</th><th>Biomasa</th><th>Estrés %</th></tr></thead><tbody>${esc2}</tbody></table>` : ''}
+${S.ia && S.ia.hechos === hechos(res) ? `<h2>Interpretación generada por IA</h2><div class="ia">${S.ia.texto.split(/\n{2,}/).map(p => '<p>' + esc(p) + '</p>').join('')}</div><p class="n">${esc(S.ia.prov)} · ${esc(S.ia.modelo)}.${S.ia.nuevas.length ? ' Cifras no presentes en el escenario: ' + S.ia.nuevas.map(esc).join(', ') + '.' : ''} Texto no revisado por una persona.</p>` : ''}
+<p class="n" style="margin-top:28px">Modelo didáctico con factores multiplicativos calibrados por especie; no sustituye a DSSAT, APSIM ni a ensayos experimentales.<br>María Emma García Pastor (ORCID 0000-0002-4959-9419) · Fernando Borrás Rocher (ORCID 0000-0002-5519-4573) · MIT</p></body></html>`;
+  dl('simuplanta_informe.html', html, 'text/html;charset=utf-8');
+};
+
+/* ── arranque ── */
+(async () => {
+  iniciaSpecies();
+  const p = await cargaEstado();
+  if (p) S = {...S, ...p, env: {...DEF_ENV, ...(p.env || {})}, scenarios: Array.isArray(p.scenarios) ? p.scenarios.filter(s => s && s.env && SPECIES[s.env.species]) : []};
+  if (!SPECIES[S.env.species]) S.env.species = 'tomate';
+  iniciaUI(); go(0);
+})();
+
+</script>
+</body></html>
